@@ -1,0 +1,9 @@
+.git
+.idea
+dist
+node_modules
+extension
+.env
+.env.example
+README.md
+README.ru.md

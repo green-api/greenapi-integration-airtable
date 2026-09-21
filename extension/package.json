@@ -1,0 +1,30 @@
+{
+    "name": "greenapi-integration-airtable-extension",
+    "version": "0.0.1",
+    "private": true,
+    "scripts": {
+        "start": "npx --yes @airtable/blocks-cli@3.0.3 run",
+        "release": "npx --yes @airtable/blocks-cli@3.0.3 release",
+        "submit": "npx --yes @airtable/blocks-cli@3.0.3 submit",
+        "lint": "eslint frontend",
+        "test": "jest"
+    },
+    "dependencies": {
+        "@airtable/blocks": "1.19.0",
+        "react": "^16.14.0",
+        "react-dom": "^16.14.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.39.5",
+        "@types/jest": "^30.0.0",
+        "@typescript-eslint/eslint-plugin": "^8.0.0",
+        "@typescript-eslint/parser": "^8.0.0",
+        "eslint": "^9.5.0",
+        "eslint-plugin-react": "^7.34.2",
+        "eslint-plugin-react-hooks": "^5.2.0",
+        "globals": "^16.5.0",
+        "jest": "^30.5.1",
+        "ts-jest": "^29.4.12",
+        "typescript": "^5.4.5"
+    }
+}

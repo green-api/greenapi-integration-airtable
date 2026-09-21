@@ -1,0 +1,191 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Base {
+  id             String          @id
+  /// [InboundConfig]
+  inbound        Json?
+  airtable       AirtableAuth?
+  users          BaseUser[]
+  automationKeys AutomationKey[]
+  instances      Instance[]
+  jobs           SendJob[]
+  createdAt      DateTime        @default(now())
+}
+
+model AirtableAuth {
+  baseId           String   @id
+  base             Base     @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  accessToken      String   @db.Text
+  refreshToken     String   @db.Text
+  expiresAt        DateTime
+  refreshExpiresAt DateTime
+  scope            String
+  updatedAt        DateTime @updatedAt
+}
+
+enum OAuthPurpose {
+  base
+  user
+}
+
+model OAuthState {
+  state        String       @id
+  baseId       String
+  purpose      OAuthPurpose @default(base)
+  codeVerifier String
+  pendingKey   String?      @db.Text
+  createdAt    DateTime     @default(now())
+}
+
+enum PermissionLevel {
+  none
+  read
+  comment
+  edit
+  create
+  interfaceOnly
+}
+
+model BaseUser {
+  id              String          @id @default(cuid())
+  baseId          String
+  base            Base            @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  airtableUserId  String
+  email           String?
+  name            String?
+  permissionLevel PermissionLevel
+  keyHash         String?         @unique
+  instances       UserInstance[]
+  createdAt       DateTime        @default(now())
+  lastSeenAt      DateTime        @default(now())
+
+  @@unique([baseId, airtableUserId])
+}
+
+model UserInstance {
+  userId     String
+  user       BaseUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idInstance BigInt
+  instance   Instance @relation(fields: [idInstance], references: [idInstance], onDelete: Cascade)
+
+  @@id([userId, idInstance])
+}
+
+enum Messenger {
+  whatsapp
+  telegram
+  max
+}
+
+enum InstanceState {
+  notAuthorized
+  authorized
+  yellowCard
+  blocked
+  starting
+  suspended
+  pendingPassword
+}
+
+model Instance {
+  idInstance       BigInt         @id
+  apiTokenInstance String
+  apiUrl           String
+  stateInstance    InstanceState?
+  messenger        Messenger
+  phone            String?
+  checkedAt        DateTime?
+  /// [InstanceSettings]
+  settings         Json?          @default("{}") @db.Json
+  name             String?
+  receiveWebhooks  Boolean        @default(false)
+  baseId           String
+  base             Base           @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  jobs             SendJob[]
+  users            UserInstance[]
+  automationKeys   AutomationKey[]
+  createdAt        DateTime       @default(now())
+
+  @@index([baseId])
+}
+
+enum SendJobStatus {
+  queued
+  running
+  done
+  cancelled
+}
+
+enum SendJobItemStatus {
+  queued
+  sent
+  failed
+  skipped
+}
+
+model SendJob {
+  id         String        @id @default(cuid())
+  baseId     String
+  base       Base          @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  idInstance BigInt
+  instance   Instance      @relation(fields: [idInstance], references: [idInstance], onDelete: Cascade)
+  status     SendJobStatus @default(queued)
+  total      Int
+  sent       Int           @default(0)
+  failed     Int           @default(0)
+  /// [JobWriteBack]
+  writeBack  Json?
+  items      SendJobItem[]
+  createdAt  DateTime      @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([baseId, createdAt])
+  @@index([idInstance, status])
+}
+
+model SendJobItem {
+  id        String            @id @default(cuid())
+  jobId     String
+  job       SendJob           @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  position  Int
+  recordId  String?
+  chatId    String
+  /// [OutboundPayload]
+  payload   Json?
+  status    SendJobItemStatus @default(queued)
+  idMessage String?
+  error     String?           @db.Text
+  sentAt    DateTime?
+
+  @@index([jobId, position])
+  @@index([idMessage])
+}
+
+model AutomationKey {
+  id         String    @id @default(cuid())
+  baseId     String
+  base       Base      @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  name       String
+  keyHash    String    @unique
+  idInstance BigInt?
+  instance   Instance? @relation(fields: [idInstance], references: [idInstance], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([baseId])
+  @@index([idInstance])
+}
+
