@@ -1,6 +1,6 @@
 {
   "name": "greenapi-integration-airtable",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "GREEN-API Integration with Airtable",
   "author": "GREEN-API",
   "private": true,
