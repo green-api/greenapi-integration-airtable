@@ -176,7 +176,7 @@ record, and the script that Tools → Automations shows (pre-filled with this ba
 
 ```js
 const {phone, message, recordId} = input.config();
-const response = await fetch('https://airtable.green-api.com/api/v1/send', {
+const response = await fetch('https://airtable.int.green-api.com/api/v1/send', {
     method: 'POST',
     headers: {'Authorization': 'Bearer ak_…', 'Content-Type': 'application/json'},
     body: JSON.stringify({idInstance: 1101000001, phone, recordId, payload: {type: 'text', text: message}}),
@@ -208,7 +208,7 @@ npm run start:prod
 | Variable                | Meaning |
 |-------------------------|---------|
 | `DATABASE_URL`          | MySQL connection string, e.g. `mysql://user:pass@host:3306/adapter` |
-| `APP_URL`               | public base URL of the adapter, e.g. `https://airtable.green-api.com`. Used to build the OAuth redirect (`/api/v1/oauth/callback`) and the webhook URL (`/api/v1/webhooks/green-api`) |
+| `APP_URL`               | public base URL of the adapter, e.g. `https://airtable.int.green-api.com`. Used to build the OAuth redirect (`/api/v1/oauth/callback`) and the webhook URL (`/api/v1/webhooks/green-api`) |
 | `PORT`                  | listen port, default `3000` |
 | `AIRTABLE_CLIENT_ID`    | from the Airtable OAuth integration (below) |
 | `AIRTABLE_CLIENT_SECRET`| from the same integration; required, the adapter refuses to start without it |
@@ -258,7 +258,7 @@ npm start
 Then paste the dev URL (`https://localhost:9000`) into the dialog. The panel loads from your machine and rebuilds on
 every edit. `.block/remote.json` is per developer and git-ignored.
 
-Point the extension at your adapter in Settings → Advanced (default: `https://airtable.green-api.com`,
+Point the extension at your adapter in Settings → Advanced (default: `https://airtable.int.green-api.com`,
 `DEFAULT_ADAPTER_URL` in `extension/frontend/defaults.ts`).
 
 To publish:

@@ -3,7 +3,7 @@ import {Messenger} from './api/types';
 
 export const CONFIG_ROOT_KEY = 'greenapi';
 export const CONFIG_VERSION = 1;
-export const DEFAULT_ADAPTER_URL = 'https://airtable.green-api.com';
+export const DEFAULT_ADAPTER_URL = 'https://airtable.int.green-api.com';
 export const DEFAULT_GREEN_API_URL = 'https://api.green-api.com';
 export const API_PREFIX = '/api/v1';
 export const JOB_POLL_INTERVAL_MS = 2000;
