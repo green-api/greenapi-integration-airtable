@@ -30,10 +30,14 @@ export const CHECK_BATCH_SIZE = 100;
 export const CONTACT_IMPORT_BATCH_SIZE = 50;
 export const QR_REFRESH_MS = 20000;
 export const CHAT_HISTORY_COUNT = 100;
+export const HISTORY_ALL_TIME_MINUTES = 10 * 365 * 24 * 60;
+export const HISTORY_DEFAULT_MINUTES = 1440;
 export const HISTORY_WINDOWS: Array<{minutes: number; label: string}> = [
     {minutes: 60, label: 'Last hour'},
-    {minutes: 360, label: 'Last 6 hours'},
     {minutes: 1440, label: 'Last 24 hours'},
+    {minutes: 7 * 1440, label: 'Last 7 days'},
+    {minutes: 30 * 1440, label: 'Last 30 days'},
+    {minutes: HISTORY_ALL_TIME_MINUTES, label: 'All time'},
 ];
 export const NUMBER_FIELD_TYPES = [FieldType.NUMBER, FieldType.SINGLE_LINE_TEXT, FieldType.FORMULA, FieldType.MULTIPLE_LOOKUP_VALUES];
 export const TEXT_LIKE_FIELD_TYPES = [FieldType.SINGLE_LINE_TEXT, FieldType.MULTILINE_TEXT, FieldType.RICH_TEXT, FieldType.FORMULA, FieldType.MULTIPLE_LOOKUP_VALUES, FieldType.EMAIL, FieldType.URL, FieldType.PHONE_NUMBER, FieldType.SINGLE_SELECT];

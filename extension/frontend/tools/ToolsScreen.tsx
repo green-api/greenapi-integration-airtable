@@ -6,7 +6,7 @@ import {AdapterClient, describeError} from '../api/adapterClient';
 import {InstanceSummaryView} from '../api/types';
 import {Badge, Card, GhostButton, Notice, PrimaryButton, Shell} from '../components/ui';
 import {GlobalConfigV1} from '../config/types';
-import {CHAT_HISTORY_COUNT, HISTORY_WINDOWS, MESSENGER_LABELS} from '../defaults';
+import {CHAT_HISTORY_COUNT, HISTORY_DEFAULT_MINUTES, HISTORY_WINDOWS, MESSENGER_LABELS} from '../defaults';
 import {instanceLabel} from '../instances';
 import {buildPreview, fieldsToLoad, PreviewRow, ResolvedMapping} from '../send/compose';
 import {checkAndWrite} from '../send/checkNumbers';
@@ -48,7 +48,7 @@ export function ToolsScreen({header, nav, client, instance, instances, mapping, 
     const [busy, setBusy] = useState<string | null>(null);
     const [notice, setNotice] = useState<{tool: string; text: string; tone: 'success' | 'error'} | null>(null);
     const [historyInstance, setHistoryInstance] = useState<string>('');
-    const [historyMinutes, setHistoryMinutes] = useState<number>(HISTORY_WINDOWS[HISTORY_WINDOWS.length - 1].minutes);
+    const [historyMinutes, setHistoryMinutes] = useState<number>(HISTORY_DEFAULT_MINUTES);
 
     const run = async (tool: string, action: () => Promise<string>) => {
         setBusy(tool);
