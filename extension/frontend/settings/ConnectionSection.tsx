@@ -10,12 +10,13 @@ import {QrDialog} from './QrDialog';
 interface Props {
     canEdit: boolean;
     isAdmin: boolean;
+    allowedIds: number[] | null;
     client: AdapterClient;
     instances: InstanceView[];
     onInstancesChanged: () => Promise<void>;
 }
 
-export function ConnectionSection({canEdit, isAdmin, client, instances, onInstancesChanged}: Props) {
+export function ConnectionSection({canEdit, isAdmin, allowedIds, client, instances, onInstancesChanged}: Props) {
     const [idInstance, setIdInstance] = useState('');
     const [token, setToken] = useState('');
     const [apiUrl, setApiUrl] = useState(DEFAULT_GREEN_API_URL);
@@ -25,6 +26,7 @@ export function ConnectionSection({canEdit, isAdmin, client, instances, onInstan
     const [adding, setAdding] = useState(false);
     const [qrFor, setQrFor] = useState<InstanceView | null>(null);
     const canManage = canEdit && isAdmin;
+    const canUse = (idInstance: number) => allowedIds === null || allowedIds.includes(idInstance);
 
     const run = async (action: () => Promise<void>) => {
         setBusy(true);
@@ -75,7 +77,7 @@ export function ConnectionSection({canEdit, isAdmin, client, instances, onInstan
                                     </div>
                                 </div>
                                 <div className="ga-row">
-                                    {canManage && instance.stateInstance !== 'authorized' && <GhostButton onClick={() => setQrFor(instance)} size="small" icon="phone">Link phone</GhostButton>}
+                                    {canUse(instance.idInstance) && instance.stateInstance !== 'authorized' && <GhostButton onClick={() => setQrFor(instance)} size="small" icon="phone" disabled={busy}>Link phone</GhostButton>}
                                     {canManage && <DangerButton onClick={() => removeInstance(instance.idInstance)} size="small" disabled={busy}>Remove</DangerButton>}
                                 </div>
                             </div>

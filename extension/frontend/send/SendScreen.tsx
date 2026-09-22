@@ -16,7 +16,6 @@ interface Props {
     viewId: string | null;
     instance: InstanceSummaryView;
     client: AdapterClient;
-    isAdmin: boolean;
     header: React.ReactNode;
     nav: React.ReactNode;
 }
@@ -109,7 +108,7 @@ function JobPanel({job, error, busy, onCancel, onReset, queue, onClearQueue}: {
     );
 }
 
-export function SendScreen({mapping, viewId, instance, client, isAdmin, header, nav}: Props) {
+export function SendScreen({mapping, viewId, instance, client, header, nav}: Props) {
     const idInstance = instance.idInstance;
     useLoadable(cursor);
     useWatchable(cursor, ['selectedRecordIds', 'activeTableId']);
@@ -211,7 +210,7 @@ export function SendScreen({mapping, viewId, instance, client, isAdmin, header, 
                         job.reset();
                     }}
                     queue={queue}
-                    onClearQueue={isAdmin ? () => setClearingQueue(true) : null}
+                    onClearQueue={() => setClearingQueue(true)}
                 />
                 {clearingQueue && (
                     <ConfirmationDialog

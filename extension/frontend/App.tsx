@@ -259,7 +259,6 @@ export function App() {
             viewId={config.mapping.viewId}
             instance={instance}
             client={client}
-            isAdmin={view.me.isAdmin}
             header={header}
             nav={nav}
         />

@@ -64,7 +64,7 @@ export function SettingsScreen({config, globalConfig, canEdit, reason, client, v
             {!canEdit && <Notice tone="info">{reason || 'You can view these settings but not change them.'}</Notice>}
             {tab === 'sending' && <MappingSection config={config} globalConfig={globalConfig} canEdit={canEdit} />}
             {tab === 'instances' && (
-                <ConnectionSection canEdit={canEdit} isAdmin={isAdmin} client={client} instances={instances} onInstancesChanged={refreshInstances} />
+                <ConnectionSection canEdit={canEdit} isAdmin={isAdmin} allowedIds={isAdmin ? null : view.me.idInstances} client={client} instances={instances} onInstancesChanged={refreshInstances} />
             )}
             {tab === 'people' && <IdentitySection client={client} me={view.me} onViewChanged={onViewChanged} instances={instances} canEdit={canEdit} onForget={onForget} />}
             {tab === 'receiving' && isAdmin && (

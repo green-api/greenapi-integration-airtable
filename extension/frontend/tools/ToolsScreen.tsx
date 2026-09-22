@@ -158,13 +158,12 @@ export function ToolsScreen({header, nav, client, instance, instances, mapping, 
                 {!inboundConfigured && <Reason>Needs a messages table — <button type="button" className="ga-link" onClick={() => onOpenSettings('receiving')}>Settings → Receiving</button>.</Reason>}
             </Card>
 
+            <ContactsImportSection client={client} instances={instances} canEdit={canEditConfig} defaultTableId={config.mapping.tableId} defaultPhoneFieldId={config.mapping.phoneFieldId} />
+
             {isAdmin ? (
-                <>
-                    <ContactsImportSection client={client} instances={instances} canEdit={canEditConfig} defaultTableId={config.mapping.tableId} defaultPhoneFieldId={config.mapping.phoneFieldId} />
-                    <AutomationSection client={client} config={config} instances={instances} canEdit={canEditConfig} />
-                </>
+                <AutomationSection client={client} config={config} instances={instances} canEdit={canEditConfig} />
             ) : (
-                <Card title="Import contacts · Automations" description="Owners and creators of the base can import the messenger’s address book into a table and create keys for Airtable Automations.">
+                <Card title="Automations" description="Owners and creators of the base can create keys that let Airtable Automations and other HTTP clients send messages.">
                     <GhostButton disabled size="small">Owners only</GhostButton>
                 </Card>
             )}

@@ -125,9 +125,9 @@ of the table the message was sent from.
 | Tools → *Check numbers* | Asks the messenger whether each selected phone has an account and writes yes/no into the mapped column (Sending → *Columns the extension fills in*). On Telegram / MAX the resolved chat id is also written into the *Chat ID* column and used for linking and as the recipient later. | `checkWhatsapp` / `checkAccount` |
 | Tools → *Chat history* (one row selected) | Imports the last 100 messages of that chat into the messages table. On Telegram / MAX a phone number is first resolved to the chat id, because their journals are keyed by chat id. | `checkAccount`, `getChatHistory` |
 | Tools → *Import history* | Imports the messenger's journal for the chosen period (last hour up to all time) into the messages table — what happened before receiving was switched on. Messages already in the table are skipped. | `lastIncomingMessages`, `lastOutgoingMessages` |
-| Tools → *Import contacts* (owners) | Copies the messenger's address book (name, phone, chat id) into a table, skipping contacts already present. Telegram / MAX contacts that hide their phone are imported by chat id when a chat id column is mapped. | `getContacts` |
-| Instances → *Link phone* (owners, instance not authorized) | Shows the QR code in the panel and refreshes it until the instance is linked. | `qr` |
-| Send tab, after a send | Shows how many messages are still waiting in GREEN-API's queue for the instance; owners can clear it. | `showMessagesQueue`, `clearMessagesQueue` |
+| Tools → *Import contacts* | Copies the messenger's address book (name, phone, chat id) into a table, skipping contacts already present. Telegram / MAX contacts that hide their phone are imported by chat id when a chat id column is mapped. | `getContacts` |
+| Instances → *Link phone* (instance not authorized) | Shows the QR code in the panel and refreshes it until the instance is linked. | `qr` |
+| Send tab, after a send | Shows how many messages are still waiting in GREEN-API's queue for the instance, with a button to clear it. | `showMessagesQueue`, `clearMessagesQueue` |
 
 Files are sent by upload: the adapter downloads the attachment when it reaches the row and uploads the bytes
 (`sendFileByUpload`), so the Airtable link only has to be valid at that moment, not when GREEN-API's queue gets to it.
@@ -307,9 +307,9 @@ All routes are under `/api/v1`. Every route except `oauth/*` and `webhooks/*` ne
 | DELETE | `automation-keys/:id`          | owner | revoke a key |
 | POST   | `instances/:id/check`          | member | check phones on the instance's messenger |
 | POST   | `instances/:id/history`, `instances/:id/chat-history` | member | import the journal / one chat into the messages table |
-| GET    | `instances/:id/queue`, POST `instances/:id/queue/clear` | member / owner | GREEN-API queue size; clear it |
-| GET    | `instances/:id/qr`             | owner | QR code for linking |
-| GET    | `instances/:id/contacts`       | owner | the messenger's address book |
+| GET    | `instances/:id/queue`, POST `instances/:id/queue/clear` | member | GREEN-API queue size; clear it |
+| GET    | `instances/:id/qr`             | member | QR code for linking |
+| GET    | `instances/:id/contacts`       | member | the messenger's address book |
 | POST   | `send`                         | automation key | send one message; waits for the result (see above) |
 | POST   | `webhooks/green-api`           | GREEN-API | webhook receiver (Bearer `webhookUrlToken`) |
 

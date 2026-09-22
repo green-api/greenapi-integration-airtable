@@ -3,7 +3,6 @@ import { ToolsService } from "./tools.service";
 import { InstancesService } from "../instances/instances.service";
 import { CheckNumbersDto, ImportChatDto, ImportHistoryDto } from "./dto/tools.dto";
 import { PersonalKeyGuard } from "../bases/guards/base-key.guard";
-import { AdminGuard } from "../bases/guards/admin.guard";
 import { assertCanSend } from "../jobs/authorize";
 import { AuthReq } from "../types";
 
@@ -34,8 +33,8 @@ export class ToolsController {
 	}
 
 	@Get("qr")
-	@UseGuards(AdminGuard)
 	async qr(@Req() req: AuthReq, @Param("idInstance", ParseIntPipe) idInstance: number) {
+		assertCanSend(req.user, idInstance);
 		return this.tools.qr(await this.instances.getOwned(req.base.id, idInstance));
 	}
 
@@ -46,14 +45,14 @@ export class ToolsController {
 	}
 
 	@Post("queue/clear")
-	@UseGuards(AdminGuard)
 	async clearQueue(@Req() req: AuthReq, @Param("idInstance", ParseIntPipe) idInstance: number) {
+		assertCanSend(req.user, idInstance);
 		return this.tools.clearQueue(await this.instances.getOwned(req.base.id, idInstance));
 	}
 
 	@Get("contacts")
-	@UseGuards(AdminGuard)
 	async contacts(@Req() req: AuthReq, @Param("idInstance", ParseIntPipe) idInstance: number) {
+		assertCanSend(req.user, idInstance);
 		return this.tools.contacts(await this.instances.getOwned(req.base.id, idInstance));
 	}
 }
