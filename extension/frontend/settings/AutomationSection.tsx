@@ -22,25 +22,11 @@ async function copyText(text: string, fallbackTarget: HTMLInputElement | HTMLTex
     if (await navigator.clipboard.writeText(text).then(() => true, () => false)) {
         return true;
     }
-    const scratch = document.createElement('textarea');
-    scratch.value = text;
-    scratch.setAttribute('readonly', '');
-    scratch.style.position = 'fixed';
-    scratch.style.opacity = '0';
-    document.body.appendChild(scratch);
-    scratch.select();
-    let copied = false;
-    try {
-        copied = document.execCommand('copy');
-    } catch {
-        copied = false;
-    }
-    document.body.removeChild(scratch);
-    if (!copied && fallbackTarget) {
+    if (fallbackTarget) {
         fallbackTarget.focus();
         fallbackTarget.select();
     }
-    return copied;
+    return false;
 }
 
 interface SnippetShape {
