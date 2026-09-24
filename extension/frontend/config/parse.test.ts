@@ -8,6 +8,11 @@ describe('migrateConfig', () => {
         expect(migrateConfig({v: CONFIG_VERSION + 1, server: {url: 'https://elsewhere.example.com'}})).toEqual(defaultConfig());
     });
 
+    it('keeps values written by synced pickers before any versioned write', () => {
+        expect(migrateConfig({mapping: {tableId: 'tbl1'}}).mapping.tableId).toBe('tbl1');
+        expect(migrateConfig({mapping: {tableId: 'tbl1'}}).server.url).toBe(DEFAULT_ADAPTER_URL);
+    });
+
     it('fills in missing pieces and keeps what is there', () => {
         const config = migrateConfig({v: CONFIG_VERSION, mapping: {tableId: 'tblX', phoneFieldId: 'fldP'}});
         expect(config.server.url).toBe(DEFAULT_ADAPTER_URL);

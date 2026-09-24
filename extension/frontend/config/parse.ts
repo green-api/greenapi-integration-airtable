@@ -141,7 +141,7 @@ function readServer(value: unknown, fallback: ServerConfig): ServerConfig {
 export function migrateConfig(raw: unknown): GlobalConfigV1 {
     const base = defaultConfig();
     const stored = asRecord(raw);
-    if (stored.v !== CONFIG_VERSION) {
+    if (stored.v !== undefined && stored.v !== CONFIG_VERSION) {
         return base;
     }
     return {
