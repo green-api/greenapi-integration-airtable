@@ -64,7 +64,18 @@ function statusValue(field: Field, item: JobItemView): unknown {
     return selectChoices(field).some(choice => choice.name === name) ? {name} : undefined;
 }
 
-function toUpdate(item: JobItemView, mapping: ResolvedMapping, now: string): RecordUpdate | null {
+function pad(value: number): string {
+    return String(value).padStart(2, '0');
+}
+
+function sentAtValue(field: Field, now: Date): string {
+    if (field.type !== FieldType.SINGLE_LINE_TEXT) {
+        return now.toISOString();
+    }
+    return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+}
+
+function toUpdate(item: JobItemView, mapping: ResolvedMapping, now: Date): RecordUpdate | null {
     const fields: RecordUpdate['fields'] = {};
     if (mapping.statusField) {
         const value = statusValue(mapping.statusField, item);
@@ -76,13 +87,13 @@ function toUpdate(item: JobItemView, mapping: ResolvedMapping, now: string): Rec
         fields[mapping.idMessageField.id] = item.idMessage ?? '';
     }
     if (mapping.sentAtField && item.status === 'sent') {
-        fields[mapping.sentAtField.id] = now;
+        fields[mapping.sentAtField.id] = sentAtValue(mapping.sentAtField, now);
     }
     return item.recordId && Object.keys(fields).length > 0 ? {id: item.recordId, fields} : null;
 }
 
 export async function writeBackItems(table: Table, mapping: ResolvedMapping, items: JobItemView[]): Promise<void> {
-    const now = new Date().toISOString();
+    const now = new Date();
     const updates = items
         .map(item => toUpdate(item, mapping, now))
         .filter((update): update is RecordUpdate => update !== null);

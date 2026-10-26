@@ -51,7 +51,7 @@ export function MappingSection({config, globalConfig, canEdit}: Props) {
                         <Field label="Message ID field">
                             <FieldPickerSynced table={table} globalConfigKey={configPath('mapping', 'writeBack', 'idMessageFieldId')} allowedTypes={ID_MESSAGE_FIELD_TYPES} shouldAllowPickingNone disabled={disabled} />
                         </Field>
-                        <Field label="Timestamp field" hint="Set to the moment the message is accepted for sending.">
+                        <Field label="Timestamp field" hint="A Date field (with or without time) or a single line text field. Set to the moment the message is accepted for sending.">
                             <FieldPickerSynced table={table} globalConfigKey={configPath('mapping', 'writeBack', 'sentAtFieldId')} allowedTypes={SENT_AT_FIELD_TYPES} shouldAllowPickingNone disabled={disabled} />
                         </Field>
                         <Field label="Account check field" hint="Checkbox, single select (yes / no) or text.">

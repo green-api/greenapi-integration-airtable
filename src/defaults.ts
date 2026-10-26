@@ -2,6 +2,7 @@ import { Messenger } from "./generated/prisma/client";
 
 export const API_PREFIX = "api/v1";
 export const DEFAULT_PORT = 3000;
+export const TRUSTED_PROXY_HOPS = 1;
 export const BASE_KEY_BYTES = 32;
 export const WEBHOOK_TOKEN_BYTES = 24;
 export const MAX_JOB_ITEMS = 5000;

@@ -1,11 +1,12 @@
 import { NestFactory } from "@nestjs/core";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import { AppModule } from "./app.module";
 import { ValidationPipe } from "@nestjs/common";
 import helmet from "helmet";
 import { Settings } from "@green-api/greenapi-integration";
 import { ValidationExceptionFilter } from "./filters/validation-exception.filter";
 import { IntegrationErrorFilter } from "./filters/integration-error.filter";
-import { API_PREFIX, DEFAULT_PORT } from "./defaults";
+import { API_PREFIX, DEFAULT_PORT, TRUSTED_PROXY_HOPS } from "./defaults";
 
 declare global {
 	namespace PrismaJson {
@@ -17,7 +18,8 @@ declare global {
 }
 
 async function bootstrap() {
-	const app = await NestFactory.create(AppModule);
+	const app = await NestFactory.create<NestExpressApplication>(AppModule);
+	app.set("trust proxy", TRUSTED_PROXY_HOPS);
 	app.setGlobalPrefix(API_PREFIX);
 	app.enableCors({
 		origin: "*",
