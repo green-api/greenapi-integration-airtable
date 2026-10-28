@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Instance } from "../generated/prisma/client";
-import { generateRandomToken, GreenApiLogger, Settings } from "@green-api/greenapi-integration";
+import { generateRandomToken, GreenApiLogger, IntegrationError, Settings } from "@green-api/greenapi-integration";
 import { PrismaService } from "../prisma/prisma.service";
 import { requireEnv } from "../env";
 import { AirtableAdapter } from "../airtable/airtable.adapter";
@@ -10,7 +10,16 @@ import { toInstanceView } from "./instance-view";
 import { InstanceView } from "../types";
 import { apiError, ErrorCode } from "../errors";
 import { greenApiCall } from "../green-api-call";
-import { API_PREFIX, INSTANCE_REFRESH_TTL_MS, RECEIVE_SETTINGS, WEBHOOK_PATH, WEBHOOK_TOKEN_BYTES } from "../defaults";
+import {
+	API_PREFIX,
+	INSTANCE_CHECK_TIMEOUT_MS,
+	INSTANCE_REFRESH_TTL_MS,
+	INSTANCE_VERIFY_TIMEOUT_MS,
+	RECEIVE_SETTINGS,
+	UNREACHABLE_EXEMPT_STATUSES,
+	WEBHOOK_PATH,
+	WEBHOOK_TOKEN_BYTES,
+} from "../defaults";
 
 @Injectable()
 export class InstancesService {
@@ -53,7 +62,7 @@ export class InstancesService {
 	async remove(baseId: string, idInstance: number): Promise<InstanceView> {
 		const instance = await this.getOwned(baseId, idInstance);
 		if (instance.receiveWebhooks) {
-			await this.clearWebhook(instance);
+			await this.clearWebhook(instance, INSTANCE_VERIFY_TIMEOUT_MS);
 		}
 		await this.prisma.removeInstance(idInstance);
 		this.logger.info("Instance removed", {baseId, idInstance});
@@ -85,8 +94,8 @@ export class InstancesService {
 		});
 	}
 
-	private async clearWebhook(instance: Instance): Promise<Instance> {
-		const client = this.adapter.createGreenApiClient(instance);
+	private async clearWebhook(instance: Instance, timeoutMs?: number): Promise<Instance> {
+		const client = this.adapter.createGreenApiClient(instance, timeoutMs);
 		try {
 			const current = await client.getSettings();
 			if (current.webhookUrl === this.webhookUrl) {
@@ -108,14 +117,16 @@ export class InstancesService {
 		if (instance.checkedAt && Date.now() - instance.checkedAt.getTime() < INSTANCE_REFRESH_TTL_MS) {
 			return toInstanceView(instance);
 		}
-		const client = this.adapter.createGreenApiClient(instance);
+		const client = this.adapter.createGreenApiClient(instance, INSTANCE_CHECK_TIMEOUT_MS);
 		try {
 			const {stateInstance} = await client.getStateInstance();
 			const phone = stateInstance === "authorized" ? await this.adapter.readPhone(client, instance.messenger) ?? instance.phone : instance.phone;
 			return toInstanceView(await this.prisma.updateInstanceStatus(instance.idInstance, stateInstance, phone));
 		} catch (error) {
-			this.logger.warn("Instance state refresh failed", {idInstance: Number(instance.idInstance), error: error instanceof Error ? error.message : String(error)});
-			return toInstanceView(instance);
+			const status = error instanceof IntegrationError ? error.statusCode : 0;
+			const reachable = UNREACHABLE_EXEMPT_STATUSES.includes(status);
+			this.logger.warn("Instance state refresh failed", {idInstance: Number(instance.idInstance), reachable, error: error instanceof Error ? error.message : String(error)});
+			return toInstanceView(await this.prisma.markInstanceChecked(instance.idInstance, reachable));
 		}
 	}
 }

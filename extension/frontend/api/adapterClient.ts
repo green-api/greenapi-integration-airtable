@@ -54,6 +54,8 @@ const ERROR_COPY: Record<AdapterErrorCode, string> = {
     INBOUND_DELIVERY_FAILED: 'The adapter could not write into Airtable. Check the Receiving settings.',
     GREEN_API_RATE_LIMITED: 'GREEN-API is rate-limiting this instance. Wait a minute and try again.',
     GREEN_API_ERROR: 'GREEN-API returned an error — see the details below.',
+    GREEN_API_TIMEOUT: 'GREEN-API did not answer in time for this instance. Try again in a minute.',
+    INSTANCE_UNREACHABLE: 'GREEN-API does not answer for this instance. Check the apiUrl in the GREEN-API console.',
     QR_UNAVAILABLE: 'GREEN-API did not return a QR code. Try again in a few seconds.',
     INBOUND_NOT_CONFIGURED: 'Choose a messages table first.',
     WEBHOOK_SETTINGS_FAILED: 'GREEN-API refused to update the instance webhook settings.',

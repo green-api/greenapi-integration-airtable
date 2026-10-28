@@ -1,16 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import axios from "axios";
-import { GreenApiLogger } from "@green-api/greenapi-integration";
+import { GreenApiLogger, IntegrationError } from "@green-api/greenapi-integration";
 import { PrismaService } from "../prisma/prisma.service";
 import { requireEnv } from "../env";
-import { AirtableAuth, OAuthPurpose, PermissionLevel } from "../generated/prisma/client";
+import { AirtableAuth, BaseUser, OAuthPurpose, PermissionLevel, UserAuth } from "../generated/prisma/client";
 import { apiError, ErrorCode } from "../errors";
 import { codeChallenge, createCodeVerifier, createState } from "./pkce";
 import {
 	ACCESS_TOKEN_REFRESH_MARGIN_MS,
 	AIRTABLE_API_URL,
 	AIRTABLE_AUTHORIZE_URL,
+	AIRTABLE_BASES_PAGE_LIMIT,
 	AIRTABLE_BASE_SCOPES,
 	AIRTABLE_TOKEN_URL,
 	AIRTABLE_USER_SCOPES,
@@ -34,6 +35,10 @@ export interface AirtableIdentity {
 	permissionLevel: PermissionLevel;
 }
 
+export type CurrentPermission = PermissionLevel | "lost" | "unknown";
+
+const REJECTED_TOKEN_STATUSES = [400, 401, 403];
+
 @Injectable()
 export class AirtableAuthService {
 	private readonly logger = GreenApiLogger.getInstance(AirtableAuthService.name);
@@ -41,6 +46,7 @@ export class AirtableAuthService {
 	private readonly clientSecret: string;
 	private readonly redirectUri: string;
 	private readonly refreshing = new Map<string, Promise<AirtableAuth>>();
+	private readonly refreshingUsers = new Map<string, Promise<UserAuth>>();
 
 	constructor(private readonly prisma: PrismaService, config: ConfigService) {
 		this.clientId = requireEnv(config, "AIRTABLE_CLIENT_ID");
@@ -88,11 +94,11 @@ export class AirtableAuthService {
 		this.logger.info("Airtable authorized for base writes", {baseId, scope: token.scope});
 	}
 
-	async adoptWriterIfMissing(baseId: string, token: TokenResponse): Promise<boolean> {
+	async adoptWriterIfMissing(baseId: string, token: TokenResponse, airtableUserId: string): Promise<boolean> {
 		if (await this.hasWriter(baseId) || !token.scope.split(" ").includes("data.records:write")) {
 			return false;
 		}
-		await this.store(baseId, token);
+		await this.store(baseId, token, airtableUserId);
 		this.logger.info("Airtable writer adopted from identity confirmation", {baseId});
 		return true;
 	}
@@ -105,15 +111,100 @@ export class AirtableAuthService {
 	async identify(token: TokenResponse, baseId: string): Promise<AirtableIdentity> {
 		const headers = {Authorization: `Bearer ${token.access_token}`};
 		try {
-			const [whoami, bases] = await Promise.all([
+			const [whoami, permissionLevel] = await Promise.all([
 				axios.get<{ id: string; email?: string }>(`${AIRTABLE_API_URL}/meta/whoami`, {headers}),
-				axios.get<{ bases: Array<{ id: string; permissionLevel: PermissionLevel }> }>(`${AIRTABLE_API_URL}/meta/bases`, {headers}),
+				this.basePermission(token.access_token, baseId),
 			]);
-			const permissionLevel = bases.data.bases.find(base => base.id === baseId)?.permissionLevel ?? "none";
 			return {id: whoami.data.id, email: whoami.data.email ?? null, permissionLevel};
 		} catch (error: any) {
 			throw apiError(ErrorCode.OAUTH_EXCHANGE_FAILED, `Could not read the Airtable identity: ${error.message}`, 502);
 		}
+	}
+
+	async storeUserAuth(userId: string, token: TokenResponse): Promise<void> {
+		const data = this.tokenData(token);
+		await this.prisma.userAuth.upsert({where: {userId}, update: data, create: {userId, ...data}});
+	}
+
+	async currentPermission(user: Pick<BaseUser, "id" | "baseId" | "airtableUserId">): Promise<CurrentPermission> {
+		let accessToken: string | null;
+		try {
+			accessToken = await this.userAccessToken(user);
+		} catch (error) {
+			return this.isRejected(error) ? "lost" : "unknown";
+		}
+		if (!accessToken) {
+			return "lost";
+		}
+		try {
+			return await this.basePermission(accessToken, user.baseId);
+		} catch (error: any) {
+			const status = error?.response?.status;
+			return status === 401 || status === 403 ? "lost" : "unknown";
+		}
+	}
+
+	private async basePermission(accessToken: string, baseId: string): Promise<PermissionLevel> {
+		const headers = {Authorization: `Bearer ${accessToken}`};
+		let offset: string | undefined;
+		for (let page = 0; page < AIRTABLE_BASES_PAGE_LIMIT; page++) {
+			const response = await axios.get<{ bases: Array<{ id: string; permissionLevel: PermissionLevel }>; offset?: string }>(
+				`${AIRTABLE_API_URL}/meta/bases`,
+				{headers, params: offset ? {offset} : undefined},
+			);
+			const base = response.data.bases.find(item => item.id === baseId);
+			if (base) {
+				return base.permissionLevel;
+			}
+			offset = response.data.offset;
+			if (!offset) {
+				break;
+			}
+		}
+		return "none";
+	}
+
+	private async userAccessToken(user: Pick<BaseUser, "id" | "baseId" | "airtableUserId">): Promise<string | null> {
+		const auth = await this.prisma.userAuth.findUnique({where: {userId: user.id}});
+		if (auth) {
+			if (auth.expiresAt.getTime() - Date.now() > ACCESS_TOKEN_REFRESH_MARGIN_MS) {
+				return auth.accessToken;
+			}
+			return (await this.refreshUser(auth)).accessToken;
+		}
+		const writer = await this.prisma.airtableAuth.findUnique({where: {baseId: user.baseId}});
+		if (writer && writer.airtableUserId === user.airtableUserId) {
+			return this.getAccessToken(user.baseId);
+		}
+		return null;
+	}
+
+	private refreshUser(auth: UserAuth): Promise<UserAuth> {
+		const inFlight = this.refreshingUsers.get(auth.userId);
+		if (inFlight) {
+			return inFlight;
+		}
+		const task = (async () => {
+			if (auth.refreshExpiresAt.getTime() <= Date.now()) {
+				throw apiError(ErrorCode.AIRTABLE_TOKEN_EXPIRED, "Airtable sign-in expired", 401);
+			}
+			const token = await this.exchange({grant_type: "refresh_token", refresh_token: auth.refreshToken});
+			const data = this.tokenData(token);
+			return this.prisma.userAuth.update({where: {userId: auth.userId}, data});
+		})().finally(() => this.refreshingUsers.delete(auth.userId));
+		this.refreshingUsers.set(auth.userId, task);
+		return task;
+	}
+
+	private isRejected(error: unknown): boolean {
+		if (!(error instanceof IntegrationError)) {
+			return false;
+		}
+		if (error.code === ErrorCode.AIRTABLE_TOKEN_EXPIRED) {
+			return true;
+		}
+		const status = (error.details as { status?: number } | undefined)?.status;
+		return error.code === ErrorCode.OAUTH_EXCHANGE_FAILED && status !== undefined && REJECTED_TOKEN_STATUSES.includes(status);
 	}
 
 	async parkPersonalKey(state: string, key: string): Promise<void> {
@@ -188,20 +279,24 @@ export class AirtableAuthService {
 			return response.data;
 		} catch (error: any) {
 			const detail = error.response?.data?.error_description ?? error.response?.data?.error ?? error.message;
-			this.logger.warn("Airtable token exchange failed", {detail});
-			throw apiError(ErrorCode.OAUTH_EXCHANGE_FAILED, `Airtable rejected the token request: ${detail}`, 502);
+			const status: number | undefined = error.response?.status;
+			this.logger.warn("Airtable token exchange failed", {detail, status});
+			throw apiError(ErrorCode.OAUTH_EXCHANGE_FAILED, `Airtable rejected the token request: ${detail}`, 502, {status});
 		}
 	}
 
-	private store(baseId: string, token: TokenResponse): Promise<AirtableAuth> {
+	private tokenData(token: TokenResponse) {
 		const now = Date.now();
-		const data = {
+		return {
 			accessToken: token.access_token,
 			refreshToken: token.refresh_token,
 			expiresAt: new Date(now + token.expires_in * 1000),
 			refreshExpiresAt: new Date(now + token.refresh_expires_in * 1000),
-			scope: token.scope,
 		};
+	}
+
+	private store(baseId: string, token: TokenResponse, airtableUserId?: string): Promise<AirtableAuth> {
+		const data = {...this.tokenData(token), scope: token.scope, ...(airtableUserId !== undefined ? {airtableUserId} : {})};
 		return this.prisma.airtableAuth.upsert({where: {baseId}, update: data, create: {baseId, ...data}});
 	}
 }

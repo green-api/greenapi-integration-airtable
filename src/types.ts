@@ -134,6 +134,12 @@ export interface InstanceView {
 	stateInstance: InstanceState | null;
 	phone: string | null;
 	receiveWebhooks: boolean;
+	reachable: boolean;
+}
+
+export interface CheckWhatsappResult {
+	existsWhatsapp: boolean;
+	chatId?: string;
 }
 
 export interface InstanceSummaryView {
@@ -141,6 +147,7 @@ export interface InstanceSummaryView {
 	name: string | null;
 	messenger: Messenger;
 	stateInstance: InstanceState | null;
+	reachable: boolean;
 }
 
 export interface AirtableAuthView {

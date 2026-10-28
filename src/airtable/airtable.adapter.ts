@@ -4,6 +4,7 @@ import {
 	BaseAdapter,
 	GreenApiClient,
 	Instance as LibraryInstance,
+	IntegrationError,
 	InstanceState,
 	StateInstanceWebhook,
 } from "@green-api/greenapi-integration";
@@ -11,7 +12,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AirtableTransformer } from "./airtable.transformer";
 import { SendJobItemInput } from "../types";
 import { apiError, ErrorCode } from "../errors";
-import { DEFAULT_TYPE_INSTANCE, TYPE_INSTANCE_TO_MESSENGER } from "../defaults";
+import { withTimeouts } from "../green-api-timeout";
+import { DEFAULT_TYPE_INSTANCE, GREEN_API_TIMEOUT_MS, INSTANCE_VERIFY_TIMEOUT_MS, TYPE_INSTANCE_TO_MESSENGER } from "../defaults";
 
 export interface VerifiedInstance {
 	stateInstance: InstanceState;
@@ -25,12 +27,12 @@ export class AirtableAdapter extends BaseAdapter<SendJobItemInput, never, Base, 
 		super(transformer, prisma);
 	}
 
-	createGreenApiClient(instance: LibraryInstance): GreenApiClient {
-		return new GreenApiClient({
+	createGreenApiClient(instance: LibraryInstance, timeoutMs = GREEN_API_TIMEOUT_MS): GreenApiClient {
+		return withTimeouts(new GreenApiClient({
 			idInstance: instance.idInstance,
 			apiTokenInstance: instance.apiTokenInstance,
 			apiUrl: instance.apiUrl,
-		});
+		}), timeoutMs);
 	}
 
 	async createPlatformClient(): Promise<never> {
@@ -46,11 +48,14 @@ export class AirtableAdapter extends BaseAdapter<SendJobItemInput, never, Base, 
 	}
 
 	async verifyInstance(idInstance: number, apiTokenInstance: string, apiUrl: string): Promise<VerifiedInstance> {
-		const client = this.createGreenApiClient({idInstance, apiTokenInstance, apiUrl});
+		const client = this.createGreenApiClient({idInstance, apiTokenInstance, apiUrl}, INSTANCE_VERIFY_TIMEOUT_MS);
 		let stateInstance: InstanceState;
 		try {
 			stateInstance = (await client.getStateInstance()).stateInstance;
 		} catch (error) {
+			if (error instanceof IntegrationError && error.code === ErrorCode.GREEN_API_TIMEOUT) {
+				throw apiError(ErrorCode.INSTANCE_UNREACHABLE, `GREEN-API did not answer at ${apiUrl}; check apiUrl in the GREEN-API console`, 504, error);
+			}
 			throw apiError(ErrorCode.INSTANCE_CREDENTIALS_INVALID, "GREEN-API rejected idInstance/apiTokenInstance", 400, error);
 		}
 		const messenger = await this.readMessenger(client);

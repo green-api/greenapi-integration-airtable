@@ -48,6 +48,7 @@ export const MESSENGER_TEXT_LIMITS: Record<Messenger, number> = {whatsapp: 20000
 export const BUTTONS_MESSENGERS: readonly Messenger[] = ['whatsapp'];
 export const POLL_GROUP_ONLY_MESSENGERS: readonly Messenger[] = ['telegram'];
 export const GROUP_CHAT_ID = /^-\d+$|@g\.us$/;
+export const LID_CHAT_ID = /^\d{7,64}@lid$/;
 export const MESSAGE_TYPE_LABELS: Record<string, string> = {
     text: 'Text',
     file: 'File',

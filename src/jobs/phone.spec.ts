@@ -12,6 +12,12 @@ describe("toChatId on WhatsApp", () => {
 		expect(toChatId(" 12125550123-1600000000@g.us ", "whatsapp")).toBe("12125550123-1600000000@g.us");
 	});
 
+	it("passes WhatsApp lid chat ids through untouched", () => {
+		expect(toChatId("120650379300963@lid", "whatsapp")).toBe("120650379300963@lid");
+		expect(toChatId(" 120650379300963@lid ", "whatsapp")).toBe("120650379300963@lid");
+		expect(toChatId("120650379300963@lid", "telegram")).toBe("120650379300963@c.us");
+	});
+
 	it("rejects numbers outside the 7–15 digit range", () => {
 		expect(toChatId("123456", "whatsapp")).toBeNull();
 		expect(toChatId("1234567", "whatsapp")).toBe("1234567@c.us");

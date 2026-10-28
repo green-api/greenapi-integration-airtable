@@ -17,6 +17,6 @@ export function instanceLabel(instance: Pick<InstanceView, 'idInstance' | 'name'
     return `${instance.name ? `${instance.name} (${instance.idInstance})` : instance.idInstance} · ${MESSENGER_LABELS[instance.messenger]}`;
 }
 
-export function instanceShortLabel(instance: Pick<InstanceView, 'idInstance' | 'name' | 'messenger'>): string {
-    return `${instance.name ?? instance.idInstance} · ${MESSENGER_LABELS[instance.messenger]}`;
+export function instanceShortLabel(instance: Pick<InstanceView, 'idInstance' | 'name' | 'messenger' | 'reachable'>): string {
+    return `${instance.name ?? instance.idInstance} · ${MESSENGER_LABELS[instance.messenger]}${instance.reachable === false ? ' · unreachable' : ''}`;
 }

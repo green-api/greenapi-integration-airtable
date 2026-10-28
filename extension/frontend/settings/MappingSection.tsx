@@ -57,7 +57,7 @@ export function MappingSection({config, globalConfig, canEdit}: Props) {
                         <Field label="Account check field" hint="Checkbox, single select (yes / no) or text.">
                             <FieldPickerSynced table={table} globalConfigKey={configPath('mapping', 'writeBack', 'checkFieldId')} allowedTypes={CHECK_FIELD_TYPES} shouldAllowPickingNone disabled={disabled} />
                         </Field>
-                        <Field label="Chat ID field" hint="Telegram / MAX only: the chat id found for the phone is written here, so it can be used as the recipient later.">
+                        <Field label="Chat ID field" hint="The chat id the messenger returns for the phone (Telegram and MAX ids, WhatsApp …@c.us or …@lid) is written here, so it can be used as the recipient and for linking messages.">
                             <FieldPickerSynced table={table} globalConfigKey={configPath('mapping', 'writeBack', 'chatIdFieldId')} allowedTypes={CHAT_ID_FIELD_TYPES} shouldAllowPickingNone disabled={disabled} />
                         </Field>
                     </Card>

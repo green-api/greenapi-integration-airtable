@@ -61,6 +61,12 @@ describe("ContactResolver", () => {
 		expect(findRecords).not.toHaveBeenCalled();
 	});
 
+	it("matches WhatsApp lid chat ids against the chat id column", async () => {
+		const {resolver, findRecords} = setup({"Chat ID:120650379300963": "recLID"});
+		expect(await resolver.resolve(BASE, config(CHAT_ID_FIELD), "120650379300963@lid")).toBe("recLID");
+		expect(findRecords.mock.calls[0][2]).toContain("{Chat ID}");
+	});
+
 	it("never links groups", async () => {
 		const {resolver, findRecords} = setup({"Phone:12125550123": "recPHONE"});
 		expect(await resolver.resolve(BASE, config(CHAT_ID_FIELD), "12125550123-1600000000@g.us", 12125550123)).toBeNull();

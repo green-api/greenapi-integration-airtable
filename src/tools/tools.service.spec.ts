@@ -15,6 +15,7 @@ function instance(messenger: Messenger): Instance {
 		messenger,
 		phone: null,
 		checkedAt: null,
+		reachable: true,
 		settings: null,
 		name: null,
 		receiveWebhooks: false,

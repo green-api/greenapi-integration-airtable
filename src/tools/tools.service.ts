@@ -8,7 +8,7 @@ import { apiError, ErrorCode } from "../errors";
 import { greenApiCall } from "../green-api-call";
 import { redactSecrets } from "../redact";
 import { CHAT_HISTORY_DEFAULT_COUNT, CONTACT_TYPE_USER, PHONE_CHAT_ID } from "../defaults";
-import { CheckResult, ContactView, ImportResult, QrView, QueueView } from "../types";
+import { CheckResult, CheckWhatsappResult, ContactView, ImportResult, QrView, QueueView } from "../types";
 
 @Injectable()
 export class ToolsService {
@@ -30,8 +30,8 @@ export class ToolsService {
 			}
 			try {
 				if (instance.messenger === "whatsapp") {
-					const {existsWhatsapp} = await client.checkWhatsapp({phoneNumber: Number(digits)});
-					results.push({phone, exists: existsWhatsapp, chatId: existsWhatsapp ? `${digits}@c.us` : null, error: null});
+					const {existsWhatsapp, chatId} = await client.checkWhatsapp({phoneNumber: Number(digits)}) as CheckWhatsappResult;
+					results.push({phone, exists: existsWhatsapp, chatId: existsWhatsapp ? chatId || `${digits}@c.us` : null, error: null});
 				} else {
 					const {exist, chatId} = await client.checkAccount({phoneNumber: Number(digits)});
 					results.push({phone, exists: exist, chatId: exist && chatId ? chatId : null, error: null});

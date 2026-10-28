@@ -7,6 +7,7 @@ export function toInstanceSummary(instance: Instance): InstanceSummaryView {
 		name: instance.name,
 		messenger: instance.messenger,
 		stateInstance: instance.stateInstance,
+		reachable: instance.reachable,
 	};
 }
 
@@ -18,5 +19,6 @@ export function toInstanceView(instance: Instance): InstanceView {
 		stateInstance: instance.stateInstance,
 		phone: instance.phone,
 		receiveWebhooks: instance.receiveWebhooks,
+		reachable: instance.reachable,
 	};
 }

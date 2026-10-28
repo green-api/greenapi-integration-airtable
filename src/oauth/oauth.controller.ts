@@ -89,8 +89,10 @@ export class OauthController {
 			const identity = await this.auth.identify(token, baseId);
 			const {key, user} = await this.users.issuePersonalKey(baseId, identity);
 			await this.auth.parkPersonalKey(state, key);
-			if ((ADMIN_PERMISSION_LEVELS as readonly string[]).includes(user.permissionLevel)) {
-				await this.auth.adoptWriterIfMissing(baseId, token);
+			const adopted = (ADMIN_PERMISSION_LEVELS as readonly string[]).includes(user.permissionLevel)
+				&& await this.auth.adoptWriterIfMissing(baseId, token, identity.id);
+			if (!adopted) {
+				await this.auth.storeUserAuth(user.id, token);
 			}
 			res.send(page("Identity confirmed", "You can close this tab and return to the extension."));
 		} catch (e) {

@@ -13,10 +13,12 @@ interface Props {
     allowedIds: number[] | null;
     client: AdapterClient;
     instances: InstanceView[];
+    loading: boolean;
+    loadError: string | null;
     onInstancesChanged: () => Promise<void>;
 }
 
-export function ConnectionSection({canEdit, isAdmin, allowedIds, client, instances, onInstancesChanged}: Props) {
+export function ConnectionSection({canEdit, isAdmin, allowedIds, client, instances, loading, loadError, onInstancesChanged}: Props) {
     const [idInstance, setIdInstance] = useState('');
     const [token, setToken] = useState('');
     const [apiUrl, setApiUrl] = useState(DEFAULT_GREEN_API_URL);
@@ -62,7 +64,9 @@ export function ConnectionSection({canEdit, isAdmin, allowedIds, client, instanc
                 action={isAdmin && !adding ? <PrimaryButton onClick={() => setAdding(true)} disabled={!canManage || busy} icon="plus" size="small">Add instance</PrimaryButton> : undefined}
             >
                 {error && <Notice tone="error">{error}</Notice>}
-                {instances.length === 0 && !adding && <div className="ga-small ga-muted">No instances yet.</div>}
+                {loadError && <Notice tone="error">{`Could not load the instance list: ${loadError}`}</Notice>}
+                {loading && instances.length === 0 && <div className="ga-small ga-muted">Loading instances…</div>}
+                {!loading && !loadError && instances.length === 0 && !adding && <div className="ga-small ga-muted">No instances yet.</div>}
                 {instances.length > 0 && (
                     <div className="ga-list">
                         {instances.map(instance => (
@@ -72,12 +76,19 @@ export function ConnectionSection({canEdit, isAdmin, allowedIds, client, instanc
                                     <div className="ga-list__meta">{instance.phone ? `+${instance.phone}` : 'phone unknown'}</div>
                                     <div className="ga-row" style={{marginTop: 6}}>
                                         <MessengerBadge messenger={instance.messenger} />
-                                        <Badge tone={instanceStateTone(instance.stateInstance)} dot>{instance.stateInstance ?? 'unknown'}</Badge>
+                                        {instance.reachable !== false
+                                            ? <Badge tone={instanceStateTone(instance.stateInstance)} dot>{instance.stateInstance ?? 'unknown'}</Badge>
+                                            : <Badge tone="red" dot>unreachable</Badge>}
                                         {instance.receiveWebhooks && <Badge tone="gray">receiving</Badge>}
                                     </div>
+                                    {instance.reachable === false && (
+                                        <div className="ga-small ga-muted" style={{marginTop: 6}}>
+                                            GREEN-API does not answer for this instance. It may have been deleted, or its apiUrl or token changed. Sending from it will fail; remove it if it is gone.
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="ga-row">
-                                    {canUse(instance.idInstance) && instance.stateInstance !== 'authorized' && <GhostButton onClick={() => setQrFor(instance)} size="small" icon="phone" disabled={busy}>Link phone</GhostButton>}
+                                    {canUse(instance.idInstance) && instance.reachable !== false && instance.stateInstance !== 'authorized' && <GhostButton onClick={() => setQrFor(instance)} size="small" icon="phone" disabled={busy}>Link phone</GhostButton>}
                                     {canManage && <DangerButton onClick={() => removeInstance(instance.idInstance)} size="small" disabled={busy}>Remove</DangerButton>}
                                 </div>
                             </div>

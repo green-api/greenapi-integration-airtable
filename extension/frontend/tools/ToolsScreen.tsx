@@ -105,7 +105,7 @@ export function ToolsScreen({header, nav, client, instance, instances, mapping, 
             {nav}
             <Card
                 title="Check numbers"
-                description="Asks the messenger whether each selected phone has an account, and writes yes / no into a column. On Telegram and MAX it can also record the chat id."
+                description="Asks the messenger whether each selected phone has an account, and writes yes / no into a column. It can also record the chat id the messenger uses for that person."
                 action={<Badge tone="gray">{selectionLabel}</Badge>}
             >
                 {noticeFor('check')}

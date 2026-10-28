@@ -72,6 +72,11 @@ describe('previewChatId', () => {
         expect(previewChatId('', 'whatsapp')).toBeNull();
     });
 
+    it('keeps WhatsApp lid chat ids', () => {
+        expect(previewChatId('120650379300963@lid', 'whatsapp')).toBe('120650379300963@lid');
+        expect(previewChatId(' 120650379300963@lid ', 'whatsapp')).toBe('120650379300963@lid');
+    });
+
     it.each(['telegram', 'max'] as const)('keeps chat ids and normalises formatted phones on %s', messenger => {
         expect(previewChatId('10000000', messenger)).toBe('10000000');
         expect(previewChatId('-10000000000000', messenger)).toBe('-10000000000000');

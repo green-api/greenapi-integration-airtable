@@ -1,6 +1,6 @@
 import {Input} from '@airtable/blocks/ui';
 import React, {useCallback, useEffect, useState} from 'react';
-import {AdapterClient} from '../api/adapterClient';
+import {AdapterClient, describeError} from '../api/adapterClient';
 import {BaseView, InstanceView} from '../api/types';
 import {Brand, Card, Field, GhostButton, Notice, PrimaryButton, Shell, Tabs} from '../components/ui';
 import {GlobalConfig, writeServer} from '../config/globalConfig';
@@ -28,14 +28,20 @@ export type SettingsTab = 'sending' | 'instances' | 'people' | 'receiving' | 'ad
 export function SettingsScreen({config, globalConfig, canEdit, reason, client, view, onViewChanged, onForget, onDone, initialTab}: Props) {
     const isAdmin = view.me.isAdmin;
     const [instances, setInstances] = useState<InstanceView[]>([]);
+    const [instancesLoading, setInstancesLoading] = useState(true);
+    const [instancesError, setInstancesError] = useState<string | null>(null);
     const [tab, setTab] = useState<SettingsTab>(initialTab);
     const [url, setUrl] = useState(config.server.url);
 
     const refreshInstances = useCallback(async () => {
+        setInstancesLoading(true);
         try {
             setInstances(await client.listInstances());
-        } catch {
-            setInstances([]);
+            setInstancesError(null);
+        } catch (e) {
+            setInstancesError(describeError(e));
+        } finally {
+            setInstancesLoading(false);
         }
     }, [client]);
 
@@ -64,11 +70,11 @@ export function SettingsScreen({config, globalConfig, canEdit, reason, client, v
             {!canEdit && <Notice tone="info">{reason || 'You can view these settings but not change them.'}</Notice>}
             {tab === 'sending' && <MappingSection config={config} globalConfig={globalConfig} canEdit={canEdit} />}
             {tab === 'instances' && (
-                <ConnectionSection canEdit={canEdit} isAdmin={isAdmin} allowedIds={isAdmin ? null : view.me.idInstances} client={client} instances={instances} onInstancesChanged={refreshInstances} />
+                <ConnectionSection canEdit={canEdit} isAdmin={isAdmin} allowedIds={isAdmin ? null : view.me.idInstances} client={client} instances={instances} loading={instancesLoading} loadError={instancesError} onInstancesChanged={refreshInstances} />
             )}
             {tab === 'people' && <IdentitySection client={client} me={view.me} onViewChanged={onViewChanged} instances={instances} canEdit={canEdit} onForget={onForget} />}
             {tab === 'receiving' && isAdmin && (
-                <InboundSection client={client} canEdit={canEdit} instances={instances} onInstancesChanged={refreshInstances} contactsTableId={config.mapping.tableId} />
+                <InboundSection client={client} canEdit={canEdit} instances={instances} loading={instancesLoading} loadError={instancesError} onInstancesChanged={refreshInstances} contactsTableId={config.mapping.tableId} />
             )}
             {tab === 'advanced' && isAdmin && (
                 <Card title="Adapter" description="Only for self-hosted adapters. Everyone in this base uses the URL saved here.">

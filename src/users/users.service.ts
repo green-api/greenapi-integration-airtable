@@ -35,7 +35,7 @@ export class UsersService {
 		}
 		const key = `${PERSONAL_KEY_PREFIX}${generateRandomToken(BASE_KEY_BYTES)}`;
 		await this.prisma.base.upsert({where: {id: baseId}, update: {}, create: {id: baseId}});
-		const data = {email: identity.email, permissionLevel: identity.permissionLevel, keyHash: hashKey(key), lastSeenAt: new Date()};
+		const data = {email: identity.email, permissionLevel: identity.permissionLevel, keyHash: hashKey(key), lastSeenAt: new Date(), roleCheckedAt: new Date()};
 		const user = await this.prisma.baseUser.upsert({
 			where: {baseId_airtableUserId: {baseId, airtableUserId: identity.id}},
 			update: data,

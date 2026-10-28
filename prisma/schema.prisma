@@ -32,6 +32,7 @@ model AirtableAuth {
   expiresAt        DateTime
   refreshExpiresAt DateTime
   scope            String
+  airtableUserId   String?
   updatedAt        DateTime @updatedAt
 }
 
@@ -67,11 +68,23 @@ model BaseUser {
   name            String?
   permissionLevel PermissionLevel
   keyHash         String?         @unique
+  roleCheckedAt   DateTime?
+  auth            UserAuth?
   instances       UserInstance[]
   createdAt       DateTime        @default(now())
   lastSeenAt      DateTime        @default(now())
 
   @@unique([baseId, airtableUserId])
+}
+
+model UserAuth {
+  userId           String   @id
+  user             BaseUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken      String   @db.Text
+  refreshToken     String   @db.Text
+  expiresAt        DateTime
+  refreshExpiresAt DateTime
+  updatedAt        DateTime @updatedAt
 }
 
 model UserInstance {
@@ -107,6 +120,7 @@ model Instance {
   messenger        Messenger
   phone            String?
   checkedAt        DateTime?
+  reachable        Boolean        @default(true)
   /// [InstanceSettings]
   settings         Json?          @default("{}") @db.Json
   name             String?

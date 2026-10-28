@@ -7,6 +7,7 @@ export interface InstanceSummaryView {
     name: string | null;
     messenger: Messenger;
     stateInstance: InstanceState | null;
+    reachable: boolean;
 }
 
 export interface InstanceView {
@@ -16,6 +17,7 @@ export interface InstanceView {
     stateInstance: InstanceState | null;
     phone: string | null;
     receiveWebhooks: boolean;
+    reachable: boolean;
 }
 
 export type ButtonType = 'copy' | 'call' | 'url' | 'reply';
@@ -199,6 +201,8 @@ export type AdapterErrorCode =
     | 'QR_UNAVAILABLE'
     | 'GREEN_API_RATE_LIMITED'
     | 'GREEN_API_ERROR'
+    | 'GREEN_API_TIMEOUT'
+    | 'INSTANCE_UNREACHABLE'
     | 'WEBHOOK_SETTINGS_FAILED'
     | 'USER_NOT_MEMBER'
     | 'USER_NOT_ADMIN'

@@ -48,7 +48,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 	}
 
 	async updateInstanceStatus(idInstance: bigint, stateInstance: InstanceState, phone: string | null): Promise<Instance> {
-		return this.instance.update({where: {idInstance}, data: {stateInstance, phone, checkedAt: new Date()}});
+		return this.instance.update({where: {idInstance}, data: {stateInstance, phone, reachable: true, checkedAt: new Date()}});
+	}
+
+	async markInstanceChecked(idInstance: bigint, reachable: boolean): Promise<Instance> {
+		return this.instance.update({where: {idInstance}, data: reachable ? {checkedAt: new Date()} : {reachable: false, checkedAt: new Date()}});
 	}
 
 	async getInstancesByBase(baseId: string): Promise<Instance[]> {

@@ -12,6 +12,8 @@ interface Props {
     client: AdapterClient;
     canEdit: boolean;
     instances: InstanceView[];
+    loading: boolean;
+    loadError: string | null;
     onInstancesChanged: () => Promise<void>;
     contactsTableId: string | null;
 }
@@ -19,7 +21,7 @@ interface Props {
 const OAUTH_POLL_MS = 2000;
 const OAUTH_POLL_LIMIT = 90;
 
-export function InboundSection({client, canEdit, instances, onInstancesChanged, contactsTableId}: Props) {
+export function InboundSection({client, canEdit, instances, loading, loadError, onInstancesChanged, contactsTableId}: Props) {
     const base = useBase();
     const [view, setView] = useState<BaseView | null>(null);
     const [draft, setDraft] = useState<InboundConfig | null>(null);
@@ -161,7 +163,9 @@ export function InboundSection({client, canEdit, instances, onInstancesChanged, 
             </Card>
 
             <Card title="Instances that forward to this base" description="Points the instance’s webhook at the adapter. If the instance already sends webhooks somewhere else, that stops.">
-                {instances.length === 0 && <div className="ga-small ga-muted">Add an instance first.</div>}
+                {loadError && <Notice tone="error">{`Could not load the instance list: ${loadError}`}</Notice>}
+                {loading && instances.length === 0 && <div className="ga-small ga-muted">Loading instances…</div>}
+                {!loading && !loadError && instances.length === 0 && <div className="ga-small ga-muted">Add an instance first.</div>}
                 {instances.map(instance => (
                     <div key={instance.idInstance} className="ga-row" style={{marginBottom: 6}}>
                         <Switch value={instance.receiveWebhooks} onChange={receive => toggleReceive(instance, receive)} label={instanceName(instance)} disabled={!canEdit || busy} width="auto" />
@@ -227,7 +231,7 @@ export function InboundSection({client, canEdit, instances, onInstancesChanged, 
                                     disabled={!canEdit || busy}
                                 />
                             </Field>
-                            <Field label="Chat ID field in contacts table (optional)" hint="Telegram and MAX identify people by chat id, not phone. Tools → Check numbers fills this column; without it, their messages link only when the messenger knows the sender’s phone.">
+                            <Field label="Chat ID field in contacts table (optional)" hint="Telegram, MAX and some WhatsApp contacts (…@lid) are identified by chat id, not phone. Tools → Check numbers fills this column; without it, their messages link only when the messenger knows the sender’s phone.">
                                 <FieldPicker
                                     table={contactsTable}
                                     field={draft.contactLink?.chatIdFieldId ? contactsTable.getFieldByIdIfExists(draft.contactLink.chatIdFieldId) : null}

@@ -1,5 +1,5 @@
 import {Field, FieldType, Record, Table} from '@airtable/blocks/models';
-import {BUTTONS_MESSENGERS, DEFAULT_FILE_NAME, GROUP_CHAT_ID, MAX_PHONE_DIGITS, MESSENGER_LABELS, MESSENGER_TEXT_LIMITS, MIN_PHONE_DIGITS, POLL_GROUP_ONLY_MESSENGERS, TEMPLATE_PLACEHOLDER} from '../defaults';
+import {BUTTONS_MESSENGERS, DEFAULT_FILE_NAME, GROUP_CHAT_ID, LID_CHAT_ID, MAX_PHONE_DIGITS, MESSENGER_LABELS, MESSENGER_TEXT_LIMITS, MIN_PHONE_DIGITS, POLL_GROUP_ONLY_MESSENGERS, TEMPLATE_PLACEHOLDER} from '../defaults';
 import {ButtonConfig, MappingConfig, MessageConfig, TextSource} from '../config/types';
 import {JobItemInput, Messenger, OutboundPayload} from '../api/types';
 
@@ -31,7 +31,7 @@ const FILE_URL = /^https?:\/\//i;
 
 export function previewChatId(raw: string, messenger: Messenger): string | null {
     const trimmed = raw.trim();
-    if (messenger === 'whatsapp' ? WHATSAPP_GROUP_ID.test(trimmed) : NUMERIC_CHAT_ID.test(trimmed) || PHONE_CHAT_ID.test(trimmed)) {
+    if (messenger === 'whatsapp' ? WHATSAPP_GROUP_ID.test(trimmed) || LID_CHAT_ID.test(trimmed) : NUMERIC_CHAT_ID.test(trimmed) || PHONE_CHAT_ID.test(trimmed)) {
         return trimmed;
     }
     const digits = trimmed.replace(/\D/g, '');

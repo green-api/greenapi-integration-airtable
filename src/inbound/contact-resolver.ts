@@ -3,7 +3,7 @@ import { GreenApiLogger } from "@green-api/greenapi-integration";
 import { AirtableApiService } from "../airtable-api/airtable-api.service";
 import { digitsEqual } from "../airtable-api/formula";
 import { SchemaCache } from "./schema-cache";
-import { CONTACT_CACHE_TTL_MS, NUMERIC_CHAT_ID, PHONE_CHAT_ID } from "../defaults";
+import { CONTACT_CACHE_TTL_MS, LID_CHAT_ID, NUMERIC_CHAT_ID, PHONE_CHAT_ID } from "../defaults";
 import { InboundConfig } from "../types";
 
 interface CacheEntry {
@@ -30,11 +30,13 @@ export class ContactResolver {
 		if (phoneMatch) {
 			return this.cached(`${baseId}:${link.tableId}:phone:${phoneMatch[1]}`, () => this.lookup(baseId, link.tableId, link.phoneFieldId, phoneMatch[1]));
 		}
-		if (!NUMERIC_CHAT_ID.test(chatId)) {
+		const lid = LID_CHAT_ID.exec(chatId);
+		if (!lid && !NUMERIC_CHAT_ID.test(chatId)) {
 			return null;
 		}
+		const chatDigits = lid ? lid[1] : chatId;
 		const byChatId = link.chatIdFieldId
-			? await this.cached(`${baseId}:${link.tableId}:chat:${chatId}`, () => this.lookup(baseId, link.tableId, link.chatIdFieldId as string, chatId))
+			? await this.cached(`${baseId}:${link.tableId}:chat:${chatId}`, () => this.lookup(baseId, link.tableId, link.chatIdFieldId as string, chatDigits))
 			: null;
 		if (byChatId || !senderPhone) {
 			return byChatId;

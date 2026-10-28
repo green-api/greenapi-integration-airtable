@@ -15,6 +15,7 @@ function user(permissionLevel: UserWithInstances["permissionLevel"], idInstances
 		name: "Someone",
 		permissionLevel,
 		keyHash: null,
+		roleCheckedAt: null,
 		createdAt: new Date(0),
 		lastSeenAt: new Date(0),
 		instances: idInstances.map(idInstance => ({userId: "usr_1", idInstance: BigInt(idInstance)})),
