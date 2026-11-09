@@ -138,6 +138,7 @@ export function MessageEditor({table, message, onChange, disabled}: Props) {
                         <GhostButton onClick={() => onChange({...message, options: [...message.options, '']})} disabled={disabled || message.options.length >= MAX_POLL_OPTIONS} size="small" icon="plus">Add option</GhostButton>
                     </Field>
                     <Switch value={message.multipleAnswers} onChange={multipleAnswers => onChange({...message, multipleAnswers})} label="Allow multiple answers" disabled={disabled} width="auto" />
+                    <div className="ga-small ga-muted" style={{marginTop: 4}}>WhatsApp and Telegram only; polls sent through MAX go out without it.</div>
                 </>
             )}
 

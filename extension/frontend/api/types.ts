@@ -146,6 +146,19 @@ export interface ImportResult {
     skipped: number;
 }
 
+export interface ImportJobView {
+    id: string;
+    idInstance: number;
+    minutes: number;
+    status: 'queued' | 'running' | 'done' | 'failed';
+    total: number | null;
+    imported: number;
+    skipped: number;
+    error: string | null;
+    createdAt: string;
+    finishedAt: string | null;
+}
+
 export interface QrView {
     status: 'qr' | 'authorized' | 'error';
     image: string | null;
@@ -196,6 +209,8 @@ export type AdapterErrorCode =
     | 'AIRTABLE_TOKEN_EXPIRED'
     | 'AIRTABLE_API_ERROR'
     | 'AIRTABLE_RATE_LIMITED'
+    | 'IMPORT_NOT_FOUND'
+    | 'IMPORT_RUNNING'
     | 'INBOUND_NOT_CONFIGURED'
     | 'INBOUND_DELIVERY_FAILED'
     | 'QR_UNAVAILABLE'

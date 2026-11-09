@@ -1,5 +1,5 @@
 import { Request } from "express";
-import { AutomationKey, Base, BaseUser, Instance, InstanceState, Messenger, PermissionLevel, SendJob, SendJobItem, UserInstance } from "./generated/prisma/client";
+import { AutomationKey, Base, BaseUser, ImportJob, Instance, InstanceState, Messenger, PermissionLevel, SendJob, SendJobItem, UserInstance } from "./generated/prisma/client";
 
 export type UserWithInstances = BaseUser & { instances: UserInstance[] };
 
@@ -94,6 +94,7 @@ export type OutboundPayload =
 export interface SendJobItemInput {
 	chatId: string;
 	payload: OutboundPayload;
+	messenger: Messenger;
 }
 
 export type StatusFieldType = "singleSelect" | "text";
@@ -186,6 +187,19 @@ export interface SendJobSummaryView {
 
 export interface SendJobView extends SendJobSummaryView {
 	items: SendJobItemView[];
+}
+
+export interface ImportJobView {
+	id: string;
+	idInstance: number;
+	minutes: number;
+	status: ImportJob["status"];
+	total: number | null;
+	imported: number;
+	skipped: number;
+	error: string | null;
+	createdAt: string;
+	finishedAt: string | null;
 }
 
 export type InstanceWithBase = Instance & { base: Base };

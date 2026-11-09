@@ -20,10 +20,22 @@ export class ToolsController {
 		return this.tools.checkNumbers(await this.instances.getOwned(req.base.id, idInstance), dto.phones);
 	}
 
-	@Post("history")
-	async history(@Req() req: AuthReq, @Param("idInstance", ParseIntPipe) idInstance: number, @Body() dto: ImportHistoryDto) {
+	@Post("imports")
+	async startImport(@Req() req: AuthReq, @Param("idInstance", ParseIntPipe) idInstance: number, @Body() dto: ImportHistoryDto) {
 		assertCanSend(req.user, idInstance);
-		return this.tools.importHistory(await this.instances.getOwned(req.base.id, idInstance), dto.minutes);
+		return this.tools.startImport(await this.instances.getOwned(req.base.id, idInstance), dto.minutes);
+	}
+
+	@Get("imports/latest")
+	async latestImport(@Req() req: AuthReq, @Param("idInstance", ParseIntPipe) idInstance: number) {
+		assertCanSend(req.user, idInstance);
+		return this.tools.latestImport(await this.instances.getOwned(req.base.id, idInstance));
+	}
+
+	@Get("imports/:importId")
+	async getImport(@Req() req: AuthReq, @Param("idInstance", ParseIntPipe) idInstance: number, @Param("importId") importId: string) {
+		assertCanSend(req.user, idInstance);
+		return this.tools.getImport(await this.instances.getOwned(req.base.id, idInstance), importId);
 	}
 
 	@Post("chat-history")

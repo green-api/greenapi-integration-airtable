@@ -21,6 +21,7 @@ model Base {
   automationKeys AutomationKey[]
   instances      Instance[]
   jobs           SendJob[]
+  imports        ImportJob[]
   createdAt      DateTime        @default(now())
 }
 
@@ -128,6 +129,7 @@ model Instance {
   baseId           String
   base             Base           @relation(fields: [baseId], references: [id], onDelete: Cascade)
   jobs             SendJob[]
+  imports          ImportJob[]
   users            UserInstance[]
   automationKeys   AutomationKey[]
   createdAt        DateTime       @default(now())
@@ -140,6 +142,13 @@ enum SendJobStatus {
   running
   done
   cancelled
+}
+
+enum ImportJobStatus {
+  queued
+  running
+  done
+  failed
 }
 
 enum SendJobItemStatus {
@@ -203,3 +212,22 @@ model AutomationKey {
   @@index([idInstance])
 }
 
+model ImportJob {
+  id         String          @id @default(cuid())
+  baseId     String
+  base       Base            @relation(fields: [baseId], references: [id], onDelete: Cascade)
+  idInstance BigInt
+  instance   Instance        @relation(fields: [idInstance], references: [idInstance], onDelete: Cascade)
+  minutes    Int
+  status     ImportJobStatus @default(queued)
+  total      Int?
+  imported   Int             @default(0)
+  skipped    Int             @default(0)
+  error      String?         @db.Text
+  createdAt  DateTime        @default(now())
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([idInstance, status])
+  @@index([baseId, createdAt])
+}

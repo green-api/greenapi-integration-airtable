@@ -2,11 +2,12 @@ import { Injectable } from "@nestjs/common";
 import { GreenApiWebhook, Message, MessageTransformer } from "@green-api/greenapi-integration";
 import { OutboundButton, OutboundPayload, SendJobItemInput } from "../types";
 import { apiError, ErrorCode } from "../errors";
+import { POLL_MULTIPLE_ANSWERS_MESSENGERS } from "../defaults";
 
 @Injectable()
 export class AirtableTransformer extends MessageTransformer<SendJobItemInput, never> {
 	toGreenApiMessage(item: SendJobItemInput): Message {
-		const {chatId, payload} = item;
+		const {chatId, payload, messenger} = item;
 		switch (payload.type) {
 			case "text":
 				return {type: "text", chatId, message: payload.text};
@@ -39,7 +40,7 @@ export class AirtableTransformer extends MessageTransformer<SendJobItemInput, ne
 					chatId,
 					message: payload.question,
 					options: payload.options.map(optionName => ({optionName})),
-					multipleAnswers: payload.multipleAnswers,
+					multipleAnswers: POLL_MULTIPLE_ANSWERS_MESSENGERS.includes(messenger) ? payload.multipleAnswers : undefined,
 				};
 			case "buttons":
 				return toButtonsMessage(chatId, payload);

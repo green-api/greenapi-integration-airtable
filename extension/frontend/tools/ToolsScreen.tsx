@@ -3,7 +3,7 @@ import {Field, Record, Table} from '@airtable/blocks/models';
 import {Select, useLoadable, useRecords, useWatchable} from '@airtable/blocks/ui';
 import React, {useMemo, useState} from 'react';
 import {AdapterClient, describeError} from '../api/adapterClient';
-import {InstanceSummaryView} from '../api/types';
+import {ImportJobView, InstanceSummaryView} from '../api/types';
 import {Badge, Card, GhostButton, Notice, PrimaryButton, Shell} from '../components/ui';
 import {GlobalConfigV1} from '../config/types';
 import {CHAT_HISTORY_COUNT, HISTORY_DEFAULT_MINUTES, HISTORY_WINDOWS, MESSENGER_LABELS} from '../defaults';
@@ -13,6 +13,7 @@ import {checkAndWrite} from '../send/checkNumbers';
 import {AutomationSection} from '../settings/AutomationSection';
 import {ContactsImportSection} from '../settings/ContactsImportSection';
 import {SettingsTab} from '../settings/SettingsScreen';
+import {useImportJob} from './useImportJob';
 
 interface Props {
     header: React.ReactNode;
@@ -32,6 +33,25 @@ function Reason({children}: {children: React.ReactNode}) {
     return <div className="ga-small ga-muted" style={{marginTop: 6}}>{children}</div>;
 }
 
+function importSummary(result: {imported: number; skipped: number}): string {
+    return `${result.imported} message${result.imported === 1 ? '' : 's'} added to the messages table, ${result.skipped} already there.`;
+}
+
+function ImportStatus({job}: {job: ImportJobView}) {
+    if (job.status === 'done') {
+        return <Notice tone="success">{importSummary(job)}</Notice>;
+    }
+    if (job.status === 'failed') {
+        return <Notice tone="error">{`Import stopped: ${job.error ?? 'unknown error'}. ${importSummary(job)}`}</Notice>;
+    }
+    const processed = job.imported + job.skipped;
+    return (
+        <Notice tone="info">
+            {job.total === null ? 'Reading the journal…' : `Importing… ${processed} of ${job.total} messages processed.`} It runs on the adapter, so you can close the extension meanwhile.
+        </Notice>
+    );
+}
+
 export function ToolsScreen({header, nav, client, instance, instances, mapping, config, inboundConfigured, isAdmin, canEditConfig, onOpenSettings}: Props) {
     useLoadable(cursor);
     useWatchable(cursor, ['selectedRecordIds', 'activeTableId']);
@@ -49,6 +69,8 @@ export function ToolsScreen({header, nav, client, instance, instances, mapping, 
     const [notice, setNotice] = useState<{tool: string; text: string; tone: 'success' | 'error'} | null>(null);
     const [historyInstance, setHistoryInstance] = useState<string>('');
     const [historyMinutes, setHistoryMinutes] = useState<number>(HISTORY_DEFAULT_MINUTES);
+    const historyId = historyInstance ? Number(historyInstance) : instances[0]?.idInstance ?? null;
+    const history = useImportJob(client, historyId);
 
     const run = async (tool: string, action: () => Promise<string>) => {
         setBusy(tool);
@@ -82,14 +104,7 @@ export function ToolsScreen({header, nav, client, instance, instances, mapping, 
         if (!instance) {
             return '';
         }
-        const result = await client.importChat(instance.idInstance, rows[0].phone, CHAT_HISTORY_COUNT);
-        return `${result.imported} message${result.imported === 1 ? '' : 's'} added to the messages table, ${result.skipped} already there.`;
-    });
-
-    const importHistory = () => run('history', async () => {
-        const idInstance = Number(historyInstance || instances[0]?.idInstance);
-        const result = await client.importHistory(idInstance, historyMinutes);
-        return `${result.imported} message${result.imported === 1 ? '' : 's'} added to the messages table, ${result.skipped} already there.`;
+        return importSummary(await client.importChat(instance.idInstance, rows[0].phone, CHAT_HISTORY_COUNT));
     });
 
     const canEditTable = mapping?.table.hasPermissionToUpdateRecords() ?? false;
@@ -133,13 +148,14 @@ export function ToolsScreen({header, nav, client, instance, instances, mapping, 
                 title="Import history"
                 description="Webhooks only cover what happens after receiving is switched on. This pulls the messenger’s journal for the chosen period into the messages table; messages already there are skipped."
             >
-                {noticeFor('history')}
+                {history.error && <Notice tone="error">{history.error}</Notice>}
+                {history.job && <ImportStatus job={history.job} />}
                 <div className="ga-row">
                     <Select
                         options={instances.map(i => ({value: String(i.idInstance), label: instanceLabel(i)}))}
                         value={historyInstance || (instances[0] ? String(instances[0].idInstance) : '')}
                         onChange={value => setHistoryInstance(String(value))}
-                        disabled={busy !== null || instances.length === 0}
+                        disabled={history.active || history.starting || instances.length === 0}
                         size="small"
                         width="14rem"
                     />
@@ -147,12 +163,12 @@ export function ToolsScreen({header, nav, client, instance, instances, mapping, 
                         options={HISTORY_WINDOWS.map(w => ({value: String(w.minutes), label: w.label}))}
                         value={String(historyMinutes)}
                         onChange={value => setHistoryMinutes(Number(value))}
-                        disabled={busy !== null}
+                        disabled={history.active || history.starting}
                         size="small"
                         width="9rem"
                     />
-                    <PrimaryButton onClick={importHistory} disabled={busy !== null || !inboundConfigured || instances.length === 0} size="small" icon="download">
-                        {busy === 'history' ? 'Importing…' : 'Import'}
+                    <PrimaryButton onClick={() => void history.start(historyMinutes)} disabled={history.active || history.starting || !inboundConfigured || instances.length === 0} size="small" icon="download">
+                        {history.active || history.starting ? 'Importing…' : 'Import'}
                     </PrimaryButton>
                 </div>
                 {!inboundConfigured && <Reason>Needs a messages table — <button type="button" className="ga-link" onClick={() => onOpenSettings('receiving')}>Settings → Receiving</button>.</Reason>}

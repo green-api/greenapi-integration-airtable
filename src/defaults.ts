@@ -19,6 +19,7 @@ export const MAX_MESSAGE_LENGTH = 20000;
 export const MESSENGER_TEXT_LIMITS: Record<Messenger, number> = {whatsapp: 20000, telegram: 4096, max: 4000};
 export const BUTTONS_MESSENGERS: readonly Messenger[] = ["whatsapp"];
 export const POLL_GROUP_ONLY_MESSENGERS: readonly Messenger[] = ["telegram"];
+export const POLL_MULTIPLE_ANSWERS_MESSENGERS: readonly Messenger[] = ["whatsapp", "telegram"];
 export const GROUP_CHAT_ID = /^-\d+$|@g\.us$/;
 export const TYPE_INSTANCE_TO_MESSENGER: Record<string, Messenger> = {whatsapp: "whatsapp", telegram: "telegram", v3: "max", max: "max"};
 export const DEFAULT_TYPE_INSTANCE = "whatsapp";
@@ -81,6 +82,9 @@ export const AIRTABLE_RATE_LIMIT_BACKOFF_MS = 30 * 1000;
 export const AIRTABLE_WRITE_BATCH = 10;
 export const AIRTABLE_FIND_DEFAULT_MAX = 5;
 export const MESSAGE_ID_LOOKUP_CHUNK = 50;
+export const IMPORT_CHUNK_SIZE = MESSAGE_ID_LOOKUP_CHUNK;
+export const IMPORT_RATE_LIMIT_RETRIES = 5;
+export const GREEN_API_RATE_LIMIT_RETRY_MS = 2 * 1000;
 
 export const CONTACT_CACHE_TTL_MS = 10 * 60 * 1000;
 export const WHATSAPP_GROUP_ID = /^\d+-?\d*@g\.us$/;

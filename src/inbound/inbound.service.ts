@@ -13,7 +13,7 @@ import { greenApiCall } from "../green-api-call";
 import { HANDLED_WEBHOOK_TYPES } from "../defaults";
 import { ImportResult, InboundConfig, JobWriteBack } from "../types";
 
-interface Target {
+export interface Target {
 	baseId: string;
 	idInstance: bigint;
 	config: InboundConfig;
@@ -62,13 +62,10 @@ export class InboundService {
 		}
 	}
 
-	async importHistory(instance: Instance, minutes: number): Promise<ImportResult> {
-		const target = await this.targetFor(instance);
+	async fetchHistory(instance: Instance, minutes: number): Promise<JournalItem[]> {
 		const client = this.adapter.createGreenApiClient(instance);
 		const [incoming, outgoing] = await greenApiCall(() => Promise.all([client.lastIncomingMessages(minutes), client.lastOutgoingMessages(minutes)]));
-		const result = await this.importItems(target, [...incoming, ...outgoing] as unknown as JournalItem[]);
-		this.logger.info("History imported", {baseId: target.baseId, idInstance: Number(instance.idInstance), minutes, ...result});
-		return result;
+		return [...incoming, ...outgoing] as unknown as JournalItem[];
 	}
 
 	async importChat(instance: Instance, chatId: string, count: number): Promise<ImportResult> {
@@ -79,7 +76,7 @@ export class InboundService {
 		return result;
 	}
 
-	private async targetFor(instance: Instance): Promise<Target> {
+	async targetFor(instance: Instance): Promise<Target> {
 		const base = await this.prisma.base.findUnique({where: {id: instance.baseId}, include: {airtable: true}});
 		if (!base?.airtable || !base.inbound) {
 			throw apiError(ErrorCode.INBOUND_NOT_CONFIGURED, "Grant Airtable access and choose a messages table in Settings → Receiving first", 409);
@@ -87,7 +84,7 @@ export class InboundService {
 		return {baseId: base.id, idInstance: instance.idInstance, config: base.inbound};
 	}
 
-	private async importItems(target: Target, items: JournalItem[]): Promise<ImportResult> {
+	async importItems(target: Target, items: JournalItem[]): Promise<ImportResult> {
 		const known = await this.messages.known(target.baseId, target.config, items.map(item => item.idMessage));
 		const seen = new Set<string>();
 		const fresh = items

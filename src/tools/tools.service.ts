@@ -2,13 +2,16 @@ import { Injectable } from "@nestjs/common";
 import { GreenApiLogger } from "@green-api/greenapi-integration";
 import { Instance } from "../generated/prisma/client";
 import { AirtableAdapter } from "../airtable/airtable.adapter";
+import { PrismaService } from "../prisma/prisma.service";
 import { InboundService } from "../inbound/inbound.service";
+import { ImportRunner } from "../inbound/import.runner";
+import { toImportJobView } from "./import-view";
 import { toChatId } from "../jobs/phone";
 import { apiError, ErrorCode } from "../errors";
 import { greenApiCall } from "../green-api-call";
 import { redactSecrets } from "../redact";
 import { CHAT_HISTORY_DEFAULT_COUNT, CONTACT_TYPE_USER, PHONE_CHAT_ID } from "../defaults";
-import { CheckResult, CheckWhatsappResult, ContactView, ImportResult, QrView, QueueView } from "../types";
+import { CheckResult, CheckWhatsappResult, ContactView, ImportJobView, ImportResult, QrView, QueueView } from "../types";
 
 @Injectable()
 export class ToolsService {
@@ -16,7 +19,9 @@ export class ToolsService {
 
 	constructor(
 		private readonly adapter: AirtableAdapter,
+		private readonly prisma: PrismaService,
 		private readonly inbound: InboundService,
+		private readonly imports: ImportRunner,
 	) {}
 
 	async checkNumbers(instance: Instance, phones: string[]): Promise<CheckResult[]> {
@@ -44,8 +49,28 @@ export class ToolsService {
 		return results;
 	}
 
-	importHistory(instance: Instance, minutes: number): Promise<ImportResult> {
-		return this.inbound.importHistory(instance, minutes);
+	async startImport(instance: Instance, minutes: number): Promise<ImportJobView> {
+		const active = await this.prisma.importJob.findFirst({where: {idInstance: instance.idInstance, status: {in: ["queued", "running"]}}});
+		if (active) {
+			throw apiError(ErrorCode.IMPORT_RUNNING, "An import for this instance is already running", 409);
+		}
+		await this.inbound.targetFor(instance);
+		const job = await this.prisma.importJob.create({data: {baseId: instance.baseId, idInstance: instance.idInstance, minutes}});
+		this.imports.kick(instance.idInstance);
+		return toImportJobView(job);
+	}
+
+	async getImport(instance: Instance, importId: string): Promise<ImportJobView> {
+		const job = await this.prisma.importJob.findFirst({where: {id: importId, idInstance: instance.idInstance}});
+		if (!job) {
+			throw apiError(ErrorCode.IMPORT_NOT_FOUND, `Import ${importId} not found`, 404);
+		}
+		return toImportJobView(job);
+	}
+
+	async latestImport(instance: Instance): Promise<ImportJobView | null> {
+		const job = await this.prisma.importJob.findFirst({where: {idInstance: instance.idInstance}, orderBy: {createdAt: "desc"}});
+		return job ? toImportJobView(job) : null;
 	}
 
 	async importChat(instance: Instance, recipient: string, count: number | undefined): Promise<ImportResult> {

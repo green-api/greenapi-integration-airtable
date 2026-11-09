@@ -72,7 +72,7 @@ revoke a person's key (they will have to confirm identity again) or remove them 
 | File         | an attachment field (first file), a URL field, or a fixed URL       | yes | yes | yes |
 | Location     | latitude / longitude / name / address — fields or fixed values      | yes | yes | yes |
 | Contact card | phone / first name / last name / company — fields or fixed values   | yes | yes | yes |
-| Poll         | question (field or template) + 2–12 fixed options                   | yes | groups only | yes |
+| Poll         | question (field or template) + 2–12 fixed options                   | yes | groups only | yes, without *Allow multiple answers* |
 | Buttons      | header / body / footer + up to 3 reply **or** URL / call / copy buttons | yes | — | — |
 
 Rows that cannot be sent (no phone, text over the limit, buttons on a Telegram instance, a poll to a personal Telegram chat, …) are shown greyed out
@@ -124,7 +124,7 @@ of the table the message was sent from.
 |---|---|---|
 | Tools → *Check numbers* | Asks the messenger whether each selected phone has an account and writes yes/no into the mapped column (Sending → *Columns the extension fills in*). On Telegram / MAX the resolved chat id is also written into the *Chat ID* column and used for linking and as the recipient later. | `checkWhatsapp` / `checkAccount` |
 | Tools → *Chat history* (one row selected) | Imports the last 100 messages of that chat into the messages table. On Telegram / MAX a phone number is first resolved to the chat id, because their journals are keyed by chat id. | `checkAccount`, `getChatHistory` |
-| Tools → *Import history* | Imports the messenger's journal for the chosen period (last hour up to all time) into the messages table — what happened before receiving was switched on. Messages already in the table are skipped. | `lastIncomingMessages`, `lastOutgoingMessages` |
+| Tools → *Import history* | Imports the messenger's journal for the chosen period (last hour up to all time) into the messages table — what happened before receiving was switched on. Messages already in the table are skipped. It runs in the background on the adapter: the panel shows progress and can be closed meanwhile. | `lastIncomingMessages`, `lastOutgoingMessages` |
 | Tools → *Import contacts* | Copies the messenger's address book (name, phone, chat id) into a table, skipping contacts already present. Telegram / MAX contacts that hide their phone are imported by chat id when a chat id column is mapped. | `getContacts` |
 | Instances → *Link phone* (instance not authorized) | Shows the QR code in the panel and refreshes it until the instance is linked. | `qr` |
 | Send tab, after a send | Shows how many messages are still waiting in GREEN-API's queue for the instance, with a button to clear it. | `showMessagesQueue`, `clearMessagesQueue` |
@@ -158,7 +158,7 @@ nothing else.
 | `file`     | `url` (public link), `fileName` (with extension), `caption?` |
 | `location` | `latitude`, `longitude` (numbers), `name?`, `address?` |
 | `contact`  | `phone`, `firstName?`, `middleName?`, `lastName?`, `company?` |
-| `poll`     | `question`, `options` (2–12 strings), `multipleAnswers?` |
+| `poll`     | `question`, `options` (2–12 strings), `multipleAnswers?` (WhatsApp and Telegram; not sent to MAX) |
 | `buttons`  | `body`, `header?`, `footer?`, `buttons` (≤3 of `{type: "reply" \| "url" \| "call" \| "copy", text, value?}`; reply buttons cannot be mixed with the others; WhatsApp only) |
 
 Tools → Automations generates a ready script for each type. `recordId` and `writeBack` are optional; with them, delivery and read statuses land in that record's status column
@@ -306,7 +306,9 @@ All routes are under `/api/v1`. Every route except `oauth/*` and `webhooks/*` ne
 | GET / POST | `automation-keys`          | owner | list / create automation keys (the key itself is returned once) |
 | DELETE | `automation-keys/:id`          | owner | revoke a key |
 | POST   | `instances/:id/check`          | member | check phones on the instance's messenger |
-| POST   | `instances/:id/history`, `instances/:id/chat-history` | member | import the journal / one chat into the messages table |
+| POST   | `instances/:id/imports`        | member | start a background import of the journal (`minutes`) |
+| GET    | `instances/:id/imports/latest`, `instances/:id/imports/:importId` | member | the latest / one import with its progress |
+| POST   | `instances/:id/chat-history`   | member | import one chat into the messages table |
 | GET    | `instances/:id/queue`, POST `instances/:id/queue/clear` | member | GREEN-API queue size; clear it |
 | GET    | `instances/:id/qr`             | member | QR code for linking |
 | GET    | `instances/:id/contacts`       | member | the messenger's address book |

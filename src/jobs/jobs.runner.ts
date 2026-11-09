@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
-import { Prisma, SendJob, SendJobItem } from "../generated/prisma/client";
+import { Messenger, Prisma, SendJob, SendJobItem } from "../generated/prisma/client";
 import { GreenApiClient, GreenApiLogger, SendResponse } from "@green-api/greenapi-integration";
 import { PrismaService } from "../prisma/prisma.service";
 import { AirtableAdapter } from "../airtable/airtable.adapter";
@@ -80,12 +80,12 @@ export class JobsRunner implements OnModuleInit {
 				await this.markFailed(item, ErrorCode.FILE_URL_EXPIRED);
 				continue;
 			}
-			await this.sendItem(job, item, client);
+			await this.sendItem(job, item, client, instance.messenger);
 		}
 		await this.finish(job.id);
 	}
 
-	private async sendItem(job: SendJob, item: SendJobItem, client: GreenApiClient): Promise<void> {
+	private async sendItem(job: SendJob, item: SendJobItem, client: GreenApiClient, messenger: Messenger): Promise<void> {
 		if (!item.payload) {
 			await this.markFailed(item, ErrorCode.VALIDATION_FAILED);
 			return;
@@ -93,7 +93,7 @@ export class JobsRunner implements OnModuleInit {
 		try {
 			const response = item.payload.type === "file"
 				? await this.sendFile(client, item.chatId, item.payload)
-				: await this.adapter.handlePlatformWebhook({chatId: item.chatId, payload: item.payload}, job.idInstance);
+				: await this.adapter.handlePlatformWebhook({chatId: item.chatId, payload: item.payload, messenger}, job.idInstance);
 			await this.markSent(item, (response as SendResponse).idMessage);
 		} catch (error) {
 			const message = redactSecrets(error instanceof Error ? error.message : String(error));

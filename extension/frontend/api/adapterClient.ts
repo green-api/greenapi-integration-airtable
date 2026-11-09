@@ -4,6 +4,7 @@ import {
     AutomationKeyView,
     CheckResult,
     ContactView,
+    ImportJobView,
     ImportResult,
     QrView,
     QueueView,
@@ -51,6 +52,8 @@ const ERROR_COPY: Record<AdapterErrorCode, string> = {
     AIRTABLE_TOKEN_EXPIRED: 'The Airtable authorization expired. Reconnect the Airtable account.',
     AIRTABLE_API_ERROR: 'Airtable returned an error.',
     AIRTABLE_RATE_LIMITED: 'Airtable rate limit hit; the adapter will retry.',
+    IMPORT_NOT_FOUND: 'That import no longer exists.',
+    IMPORT_RUNNING: 'An import for this instance is already running.',
     INBOUND_DELIVERY_FAILED: 'The adapter could not write into Airtable. Check the Receiving settings.',
     GREEN_API_RATE_LIMITED: 'GREEN-API is rate-limiting this instance. Wait a minute and try again.',
     GREEN_API_ERROR: 'GREEN-API returned an error — see the details below.',
@@ -130,8 +133,16 @@ export class AdapterClient {
         return this.request('POST', `/instances/${idInstance}/check`, {phones});
     }
 
-    importHistory(idInstance: number, minutes: number): Promise<ImportResult> {
-        return this.request('POST', `/instances/${idInstance}/history`, {minutes});
+    startImport(idInstance: number, minutes: number): Promise<ImportJobView> {
+        return this.request('POST', `/instances/${idInstance}/imports`, {minutes});
+    }
+
+    getImport(idInstance: number, importId: string): Promise<ImportJobView> {
+        return this.request('GET', `/instances/${idInstance}/imports/${importId}`);
+    }
+
+    latestImport(idInstance: number): Promise<ImportJobView | null> {
+        return this.request('GET', `/instances/${idInstance}/imports/latest`);
     }
 
     importChat(idInstance: number, chatId: string, count?: number): Promise<ImportResult> {

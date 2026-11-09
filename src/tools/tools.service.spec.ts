@@ -5,6 +5,8 @@ import { ToolsService } from "./tools.service";
 
 jest.mock("../airtable/airtable.adapter", () => ({AirtableAdapter: class {}}));
 jest.mock("../inbound/inbound.service", () => ({InboundService: class {}}));
+jest.mock("../inbound/import.runner", () => ({ImportRunner: class {}}));
+jest.mock("../prisma/prisma.service", () => ({PrismaService: class {}}));
 
 function instance(messenger: Messenger): Instance {
 	return {
@@ -24,11 +26,22 @@ function instance(messenger: Messenger): Instance {
 	};
 }
 
-function setup(account: { exist: boolean; chatId?: string }) {
+function setup(account: { exist: boolean; chatId?: string }, activeImport: object | null = null) {
 	const checkAccount = jest.fn(async () => account);
 	const importChat = jest.fn(async () => ({imported: 0, skipped: 0}));
-	const service = new ToolsService({createGreenApiClient: () => ({checkAccount})} as never, {importChat} as never);
-	return {service, checkAccount, importChat};
+	const targetFor = jest.fn(async () => ({}));
+	const findFirst = jest.fn(async () => activeImport);
+	const create = jest.fn(async ({data}: { data: { baseId: string; idInstance: bigint; minutes: number } }) => ({
+		id: "imp1", status: "queued", total: null, imported: 0, skipped: 0, error: null, createdAt: new Date(0), startedAt: null, finishedAt: null, ...data,
+	}));
+	const kick = jest.fn();
+	const service = new ToolsService(
+		{createGreenApiClient: () => ({checkAccount})} as never,
+		{importJob: {findFirst, create}} as never,
+		{importChat, targetFor} as never,
+		{kick} as never,
+	);
+	return {service, checkAccount, importChat, targetFor, create, kick};
 }
 
 describe("ToolsService.importChat", () => {
@@ -63,5 +76,29 @@ describe("ToolsService.importChat", () => {
 		const {service, checkAccount} = setup({exist: true});
 		await expect(service.importChat(instance("max"), "hello", 20)).rejects.toMatchObject({code: ErrorCode.PHONE_INVALID} as Partial<IntegrationError>);
 		expect(checkAccount).not.toHaveBeenCalled();
+	});
+});
+
+describe("ToolsService.startImport", () => {
+	it("queues an import and starts the worker", async () => {
+		const {service, create, kick} = setup({exist: true});
+		const view = await service.startImport(instance("telegram"), 1440);
+		expect(create).toHaveBeenCalledWith({data: {baseId: "appTESTBASE0000001", idInstance: BigInt(1101000001), minutes: 1440}});
+		expect(kick).toHaveBeenCalledWith(BigInt(1101000001));
+		expect(view).toMatchObject({id: "imp1", idInstance: 1101000001, minutes: 1440, status: "queued", imported: 0, skipped: 0});
+	});
+
+	it("refuses a second import while one is running", async () => {
+		const {service, create, kick} = setup({exist: true}, {id: "imp0", status: "running"});
+		await expect(service.startImport(instance("whatsapp"), 60)).rejects.toMatchObject({code: ErrorCode.IMPORT_RUNNING} as Partial<IntegrationError>);
+		expect(create).not.toHaveBeenCalled();
+		expect(kick).not.toHaveBeenCalled();
+	});
+
+	it("does not queue anything when receiving is not set up", async () => {
+		const {service, targetFor, create} = setup({exist: true});
+		targetFor.mockRejectedValueOnce(new IntegrationError("no table", ErrorCode.INBOUND_NOT_CONFIGURED, 409));
+		await expect(service.startImport(instance("max"), 60)).rejects.toMatchObject({code: ErrorCode.INBOUND_NOT_CONFIGURED} as Partial<IntegrationError>);
+		expect(create).not.toHaveBeenCalled();
 	});
 });

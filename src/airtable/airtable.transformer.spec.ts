@@ -1,12 +1,13 @@
 import { IntegrationError } from "@green-api/greenapi-integration";
+import { Messenger } from "../generated/prisma/client";
 import { OutboundPayload } from "../types";
 import { AirtableTransformer } from "./airtable.transformer";
 
 const CHAT = "12125550123@c.us";
 const transformer = new AirtableTransformer();
 
-function toMessage(payload: OutboundPayload) {
-	return transformer.toGreenApiMessage({chatId: CHAT, payload});
+function toMessage(payload: OutboundPayload, messenger: Messenger = "whatsapp") {
+	return transformer.toGreenApiMessage({chatId: CHAT, payload, messenger});
 }
 
 describe("AirtableTransformer.toGreenApiMessage", () => {
@@ -49,6 +50,16 @@ describe("AirtableTransformer.toGreenApiMessage", () => {
 			message: "Tea?",
 			options: [{optionName: "yes"}, {optionName: "no"}],
 			multipleAnswers: true,
+		});
+	});
+
+	it("poll to MAX leaves multipleAnswers out", () => {
+		expect(toMessage({type: "poll", question: "Tea?", options: ["yes", "no"], multipleAnswers: true}, "max")).toEqual({
+			type: "poll",
+			chatId: CHAT,
+			message: "Tea?",
+			options: [{optionName: "yes"}, {optionName: "no"}],
+			multipleAnswers: undefined,
 		});
 	});
 

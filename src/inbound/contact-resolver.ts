@@ -1,9 +1,10 @@
 import { Injectable } from "@nestjs/common";
-import { GreenApiLogger } from "@green-api/greenapi-integration";
+import { GreenApiLogger, IntegrationError } from "@green-api/greenapi-integration";
 import { AirtableApiService } from "../airtable-api/airtable-api.service";
 import { digitsEqual } from "../airtable-api/formula";
 import { SchemaCache } from "./schema-cache";
 import { CONTACT_CACHE_TTL_MS, LID_CHAT_ID, NUMERIC_CHAT_ID, PHONE_CHAT_ID } from "../defaults";
+import { ErrorCode } from "../errors";
 import { InboundConfig } from "../types";
 
 interface CacheEntry {
@@ -64,6 +65,9 @@ export class ContactResolver {
 			const records = await this.api.findRecords(baseId, tableId, digitsEqual(fieldName, digits), [fieldId]);
 			return records[0]?.id ?? null;
 		} catch (error) {
+			if (error instanceof IntegrationError && error.code === ErrorCode.AIRTABLE_RATE_LIMITED) {
+				throw error;
+			}
 			this.logger.warn("Contact lookup failed", {baseId, tableId, error: (error as Error).message});
 			return null;
 		}
